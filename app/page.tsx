@@ -26,6 +26,19 @@ export default function HomePage() {
             공개된 프로필 데이터만 조회합니다. 비영리·개인 열람 용도로만 사용하세요.
           </p>
         </section>
+
+        <p className="mt-8 text-center text-xs text-slate-400">
+          원작:{" "}
+          <a
+            href="https://github.com/gnlow/Ent2ml"
+            target="_blank"
+            rel="noreferrer"
+            className="underline hover:text-slate-600"
+          >
+            gnlow/Ent2ml
+          </a>{" "}
+          · 본 프로젝트는 위 작품을 참고해 Next.js로 재구성한 비공식 클론입니다.
+        </p>
       </div>
     </main>
   )
