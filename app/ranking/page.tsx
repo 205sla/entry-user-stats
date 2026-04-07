@@ -125,18 +125,21 @@ async function RankingContent({ type }: { type: RankingType }) {
     entries = await getRanking(type, 20)
   } catch (err) {
     console.error("[ranking] 조회 실패:", err)
-    return (
-      <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-800">
-        랭킹 데이터를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.
-        {err instanceof Error && err.message.includes("index") && (
-          <p className="mt-2 text-xs">
-            (Firestore 인덱스가 아직 빌드 중일 수 있습니다)
-          </p>
-        )}
-      </div>
-    )
+    return <RankingError />
   }
   return <RankingTable type={type} entries={entries} />
+}
+
+/**
+ * Firestore 에러를 사용자에게 보여주는 컴포넌트.
+ */
+function RankingError() {
+  return (
+    <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-800">
+      <p className="font-semibold">랭킹 데이터를 불러오지 못했어요.</p>
+      <p className="mt-2">잠시 후 다시 시도해 주세요.</p>
+    </div>
+  )
 }
 
 function RankingSkeleton() {
