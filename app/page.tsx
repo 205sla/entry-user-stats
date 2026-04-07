@@ -6,7 +6,7 @@ export default function HomePage() {
       <div className="w-full max-w-2xl">
         <header className="mb-10 text-center">
           <h1 className="text-4xl font-bold tracking-tight text-slate-900">
-            Ent2
+            유저 찾기
           </h1>
           <p className="mt-3 text-slate-600">
             엔트리 프로필 링크를 붙여넣으면 작품 통계를 보여줍니다.

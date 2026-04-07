@@ -23,7 +23,7 @@ export default function UrlForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <label htmlFor="entry-url" className="block text-sm font-medium text-slate-700">
-        엔트리 프로필 URL 또는 ID
+        엔트리 프로필 URL
       </label>
       <div className="flex gap-2">
         <input

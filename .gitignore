@@ -27,3 +27,6 @@ npm-debug.log*
 
 # scratch investigation files
 .scratch
+
+# local design notes (not committed)
+plans

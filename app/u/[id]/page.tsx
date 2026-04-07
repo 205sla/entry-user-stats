@@ -1,16 +1,13 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { headers } from "next/headers"
 import { isValidEntryId } from "@/lib/extract-id"
-import {
-  fetchUserStatus,
-  fetchAllUserProjects,
-  fetchLatestUpdatedProject,
-} from "@/lib/entry-api"
-import { aggregate, MAX_PROJECTS } from "@/lib/aggregate"
+import { fetchUserStatus } from "@/lib/entry-api"
+import { getStatsForUser } from "@/lib/stats-service"
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
 import StatsView from "@/components/StatsView"
 
 export const dynamic = "force-dynamic"
-export const revalidate = 1800
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -36,15 +33,34 @@ export default async function UserStatsPage({ params }: PageProps) {
 
   if (!isValidEntryId(id)) notFound()
 
-  const user = await fetchUserStatus(id)
-  if (!user) notFound()
+  const h = await headers()
+  const ip = getClientIp(h)
+  const rl = checkRateLimit(`ip:${ip}`)
 
-  const { total, projects } = await fetchAllUserProjects(id)
-  // truncated(>MAX_PROJECTS) 케이스는 최근 수정 작품이 fetched 세트에 없을 수 있어
-  // 별도로 sort:updated 타겟 호출을 한다.
-  const latestUpdated =
-    total > MAX_PROJECTS ? await fetchLatestUpdatedProject(id) : null
-  const stats = aggregate(user, projects, total, latestUpdated)
+  if (!rl.allowed) {
+    return (
+      <main className="min-h-screen flex items-center justify-center px-6 py-12">
+        <div className="max-w-md text-center">
+          <h1 className="text-2xl font-bold text-slate-900">
+            잠시 후 다시 시도해주세요
+          </h1>
+          <p className="mt-3 text-slate-600">
+            너무 많은 요청이 발생했어요. 약 {rl.retryAfterSec}초 후에 다시
+            시도해주세요.
+          </p>
+          <Link
+            href="/"
+            className="mt-6 inline-block text-sm text-brand-600 hover:underline"
+          >
+            ← 홈으로
+          </Link>
+        </div>
+      </main>
+    )
+  }
+
+  const result = await getStatsForUser(id)
+  if (!result) notFound()
 
   return (
     <main className="min-h-screen px-6 py-12">
@@ -57,7 +73,7 @@ export default async function UserStatsPage({ params }: PageProps) {
             ← 다른 유저 검색
           </Link>
         </nav>
-        <StatsView stats={stats} />
+        <StatsView stats={result.stats} />
       </div>
     </main>
   )
