@@ -100,13 +100,8 @@ export default async function RankingPage({ searchParams }: PageProps) {
             랭킹 등록 방식
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-slate-600">
-            누군가가{" "}
-            <code className="rounded bg-white px-1.5 py-0.5 text-slate-700">
-              /u/&#123;id&#125;
-            </code>{" "}
-            로 유저를 검색하면 해당 유저의 통계가 자동으로 랭킹에 등록됩니다.
-            별도의 동의 절차는 없습니다. 1시간 이내 재검색은 다시 기록하지
-            않으며, 검색된 데이터는 30분 단위로 캐싱됩니다.
+            누군가가 유저를 검색하면 해당 유저의 통계가 자동으로 랭킹에
+            등록됩니다.
           </p>
           {type !== "activity" && (
             <p className="mt-2 text-xs text-slate-500">
