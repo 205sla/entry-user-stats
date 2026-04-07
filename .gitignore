@@ -1,0 +1,29 @@
+node_modules
+.next
+out
+dist
+build
+
+# Vercel
+.vercel
+
+# env
+.env
+.env.local
+.env*.local
+
+# IDE
+.vscode
+.idea
+.claude
+
+# OS
+.DS_Store
+Thumbs.db
+
+# logs
+*.log
+npm-debug.log*
+
+# scratch investigation files
+.scratch
