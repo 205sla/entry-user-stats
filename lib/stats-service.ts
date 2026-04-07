@@ -1,8 +1,13 @@
 /**
  * 유저 통계 조회의 공통 엔트리포인트.
  * 페이지(/u/[id])와 JSON API(/api/stats) 양쪽에서 동일한 캐시를 공유한다.
+ *
+ * 캐시 미스로 새로 집계가 끝났을 때 백그라운드(after)로 Firestore 랭킹에 기록한다.
+ * - 응답 지연 0ms
+ * - Firestore 측에서 1시간 dedupe 하므로 안전
  */
 
+import { after } from "next/server"
 import {
   fetchUserStatus,
   fetchAllUserProjects,
@@ -14,6 +19,7 @@ import {
   type AggregatedStats,
 } from "@/lib/aggregate"
 import { cacheGet, cacheSet } from "@/lib/cache"
+import { recordRanking } from "@/lib/ranking"
 
 const STATS_TTL_MS = 30 * 60 * 1000 // 30분
 
@@ -45,5 +51,11 @@ export async function getStatsForUser(
   const stats = aggregate(user, projects, total, latestUpdated)
 
   cacheSet(cacheKey, stats, STATS_TTL_MS)
+
+  // 응답 후 백그라운드로 랭킹 기록 (실패해도 응답에는 영향 없음)
+  after(async () => {
+    await recordRanking(stats)
+  })
+
   return { stats, cached: false }
 }
