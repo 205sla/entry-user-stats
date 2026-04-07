@@ -1,3 +1,4 @@
+import Link from "next/link"
 import UrlForm from "@/components/UrlForm"
 
 export default function HomePage() {
@@ -15,6 +16,15 @@ export default function HomePage() {
 
         <UrlForm />
 
+        <div className="mt-6 text-center">
+          <Link
+            href="/ranking"
+            className="inline-block rounded-lg border border-slate-300 bg-white px-5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50"
+          >
+            랭킹 보기
+          </Link>
+        </div>
+
         <section className="mt-12 space-y-3 text-sm text-slate-500">
           <p>
             예시:{" "}
@@ -24,6 +34,9 @@ export default function HomePage() {
           </p>
           <p>
             공개된 프로필 데이터만 조회합니다. 비영리·개인 열람 용도로만 사용하세요.
+          </p>
+          <p>
+            검색한 유저는 랭킹에 자동으로 등록됩니다.
           </p>
         </section>
 
