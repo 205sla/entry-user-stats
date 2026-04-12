@@ -5,6 +5,10 @@ import { isValidEntryId } from "@/lib/extract-id"
 import { fetchUserStatus } from "@/lib/entry-api"
 import { getStatsForUser } from "@/lib/stats-service"
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
+import {
+  getUserRankPositions,
+  type UserRankPositions,
+} from "@/lib/ranking"
 import StatsView from "@/components/StatsView"
 
 export const dynamic = "force-dynamic"
@@ -59,7 +63,10 @@ export default async function UserStatsPage({ params }: PageProps) {
     )
   }
 
-  const result = await getStatsForUser(id)
+  const [result, rankPositions] = await Promise.all([
+    getStatsForUser(id),
+    getUserRankPositions(id).catch((): UserRankPositions => ({})),
+  ])
   if (!result) notFound()
 
   return (
@@ -73,7 +80,7 @@ export default async function UserStatsPage({ params }: PageProps) {
             ← 다른 유저 검색
           </Link>
         </nav>
-        <StatsView stats={result.stats} />
+        <StatsView stats={result.stats} rankPositions={rankPositions} />
       </div>
     </main>
   )

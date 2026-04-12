@@ -1,11 +1,13 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import {
   MAX_PROJECTS,
   type AggregatedStats,
   type LatestActivity,
 } from "@/lib/aggregate"
+import type { RankingType, UserRankPositions } from "@/lib/ranking"
 import StatCards from "./StatCards"
 import FlagsPieChart from "./FlagsPieChart"
 import CategoryChart from "./CategoryChart"
@@ -14,6 +16,7 @@ import YearBarChart from "./YearBarChart"
 
 interface Props {
   stats: AggregatedStats
+  rankPositions?: UserRankPositions
 }
 
 function relativeTime(iso: string): string {
@@ -94,7 +97,50 @@ function UserHeader({
   )
 }
 
-export default function StatsView({ stats }: Props) {
+const RANK_LABELS: Record<RankingType, string> = {
+  views: "조회수",
+  likes: "좋아요",
+  comments: "댓글",
+  clones: "사본",
+  blocks: "사용 블록",
+  activity: "활동 기간",
+  popular: "인기 작품",
+  staff: "스태프 선정",
+}
+
+const RANK_COLORS: Record<number, string> = {
+  1: "bg-amber-100 text-amber-800 ring-amber-300",
+  2: "bg-slate-200 text-slate-700 ring-slate-300",
+  3: "bg-orange-100 text-orange-800 ring-orange-300",
+}
+const RANK_DEFAULT = "bg-slate-100 text-slate-600 ring-slate-200"
+
+function RankingBadges({ positions }: { positions: UserRankPositions }) {
+  const entries = Object.entries(positions) as [RankingType, number][]
+  if (entries.length === 0) return null
+
+  // 순위가 높은(숫자가 작은) 순으로 정렬
+  entries.sort((a, b) => a[1] - b[1])
+
+  return (
+    <section className="flex flex-wrap gap-2">
+      {entries.map(([type, rank]) => (
+        <Link
+          key={type}
+          href={`/ranking?type=${type}`}
+          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition hover:brightness-95 ${
+            RANK_COLORS[rank] ?? RANK_DEFAULT
+          }`}
+        >
+          <span>{RANK_LABELS[type]}</span>
+          <span>{rank}위</span>
+        </Link>
+      ))}
+    </section>
+  )
+}
+
+export default function StatsView({ stats, rankPositions = {} }: Props) {
   const { user, totals, flags, categories, topByViews, topByLikes, byYear } = stats
   const [topMode, setTopMode] = useState<TopMode>("views")
   const topItems = topMode === "views" ? topByViews : topByLikes
@@ -103,6 +149,7 @@ export default function StatsView({ stats }: Props) {
     return (
       <div className="space-y-8">
         <UserHeader user={user} latestActivity={stats.latestActivity} />
+        <RankingBadges positions={rankPositions} />
 
         {/* 여러 호출 없이 표시 가능한 정보 (userstatus + 1회 타겟 호출로 전부 얻음) */}
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -147,6 +194,7 @@ export default function StatsView({ stats }: Props) {
   return (
     <div className="space-y-8">
       <UserHeader user={user} latestActivity={stats.latestActivity} />
+      <RankingBadges positions={rankPositions} />
 
       <StatCards totals={totals} />
 
