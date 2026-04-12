@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Ent2 — 엔트리 유저 통계",
+  title: "유저 찾기 — 엔트리 유저 통계",
   description: "엔트리 프로필 링크를 붙여넣으면 작품 통계를 보여줍니다.",
 }
 

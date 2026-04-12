@@ -1,7 +1,12 @@
 import Link from "next/link"
 import { Suspense } from "react"
 import RankingTable from "@/components/RankingTable"
-import { getRanking, RANKING_TYPES, type RankingType } from "@/lib/ranking"
+import {
+  getRanking,
+  RANKING_TYPES,
+  RANKING_LABELS,
+  type RankingType,
+} from "@/lib/ranking"
 
 export const metadata = {
   title: "랭킹 — 유저 찾기",
@@ -10,17 +15,6 @@ export const metadata = {
 
 // ISR: 60초마다 재검증 (Firestore read 절약)
 export const revalidate = 60
-
-const TAB_LABELS: Record<RankingType, string> = {
-  views: "조회수",
-  likes: "좋아요",
-  comments: "댓글",
-  clones: "사본",
-  blocks: "사용 블록",
-  activity: "활동 기간",
-  popular: "인기 작품",
-  staff: "스태프 선정",
-}
 
 const TAB_DESCRIPTIONS: Record<RankingType, string> = {
   views: "작품 조회수의 합이 가장 많은 유저",
@@ -80,7 +74,7 @@ export default async function RankingPage({ searchParams }: PageProps) {
                       : "rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
                   }
                 >
-                  {TAB_LABELS[t]}
+                  {RANKING_LABELS[t]}
                 </Link>
               )
             })}

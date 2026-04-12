@@ -19,12 +19,12 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps) {
   const { id } = await params
-  if (!isValidEntryId(id)) return { title: "잘못된 ID — Ent2" }
+  if (!isValidEntryId(id)) return { title: "잘못된 ID — 유저 찾기" }
   try {
     const user = await fetchUserStatus(id)
-    if (!user) return { title: "유저 없음 — Ent2" }
+    if (!user) return { title: "유저 없음 — 유저 찾기" }
     return {
-      title: `${user.nickname}님의 통계 — Ent2`,
+      title: `${user.nickname}님의 통계 — 유저 찾기`,
       description: `${user.nickname}님의 엔트리 작품 통계`,
     }
   } catch {

@@ -118,14 +118,9 @@ function yearOf(iso: string): string {
   return String(d.getFullYear())
 }
 
-/** 가입일(ISO) 기준 현재까지의 활동 기간을 한글로 포맷 */
-function formatActivityPeriod(createdIso: string): string {
-  if (!createdIso) return "-"
-  const start = new Date(createdIso).getTime()
-  if (isNaN(start)) return "-"
-  const diffMs = Date.now() - start
-  if (diffMs < 0) return "-"
-  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+/** 일 수를 한글 기간 문자열로 변환 ("3일", "2개월", "1년 5개월") */
+export function formatDays(days: number): string {
+  if (days < 0) return "-"
   if (days < 30) return `${days}일`
   const totalMonths = Math.floor(days / 30.44)
   const years = Math.floor(totalMonths / 12)
@@ -133,6 +128,16 @@ function formatActivityPeriod(createdIso: string): string {
   if (years === 0) return `${totalMonths}개월`
   if (months === 0) return `${years}년`
   return `${years}년 ${months}개월`
+}
+
+/** 가입일(ISO) 기준 현재까지의 활동 기간을 한글로 포맷 */
+function formatActivityPeriod(createdIso: string): string {
+  if (!createdIso) return "-"
+  const start = new Date(createdIso).getTime()
+  if (isNaN(start)) return "-"
+  const diffMs = Date.now() - start
+  if (diffMs < 0) return "-"
+  return formatDays(Math.floor(diffMs / (1000 * 60 * 60 * 24)))
 }
 
 function toCard(p: EntryProject): ProjectCard {

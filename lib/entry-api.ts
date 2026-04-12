@@ -98,13 +98,12 @@ async function acquireCsrf(): Promise<CsrfSession> {
   return cached
 }
 
-async function graphql<T>(
+/** 세션 정보로 단일 GraphQL fetch 를 수행하고 파싱된 data 를 반환한다. */
+async function graphqlFetch<T>(
   operationName: string,
-  query: string,
-  variables: Record<string, unknown>,
+  body: string,
+  session: CsrfSession,
 ): Promise<T> {
-  const session = await acquireCsrf()
-
   const res = await fetch(`${ENTRY_ORIGIN}/graphql/${operationName}`, {
     method: "POST",
     headers: {
@@ -118,42 +117,14 @@ async function graphql<T>(
       "User-Agent":
         "Mozilla/5.0 (compatible; Ent2Stats/1.0; +https://playentry.org/)",
     },
-    body: JSON.stringify({ operationName, query, variables }),
+    body,
     cache: "no-store",
   })
 
-  if (res.status === 403) {
-    // 세션 만료 가능성 → 캐시 무효화 후 1회 재시도
-    cached = null
-    const retry = await acquireCsrf()
-    const res2 = await fetch(`${ENTRY_ORIGIN}/graphql/${operationName}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "CSRF-Token": retry.token,
-        "X-Client-Type": "Client",
-        "Cookie": retry.cookie,
-        "Origin": ENTRY_ORIGIN,
-        "Referer": ENTRY_ORIGIN + "/",
-        "User-Agent":
-          "Mozilla/5.0 (compatible; Ent2Stats/1.0; +https://playentry.org/)",
-      },
-      body: JSON.stringify({ operationName, query, variables }),
-      cache: "no-store",
-    })
-    if (!res2.ok) {
-      throw new Error(`graphql ${operationName} failed: ${res2.status}`)
-    }
-    const json2 = await res2.json()
-    if (json2.errors) {
-      throw new Error(`graphql ${operationName} errors: ${JSON.stringify(json2.errors)}`)
-    }
-    return json2.data as T
-  }
-
   if (!res.ok) {
-    throw new Error(`graphql ${operationName} failed: ${res.status}`)
+    throw Object.assign(new Error(`graphql ${operationName} failed: ${res.status}`), {
+      status: res.status,
+    })
   }
   const json = await res.json()
   if (json.errors) {
@@ -162,6 +133,28 @@ async function graphql<T>(
     )
   }
   return json.data as T
+}
+
+/** CSRF 세션으로 GraphQL 요청. 403 시 세션 갱신 후 1회 재시도. */
+async function graphql<T>(
+  operationName: string,
+  query: string,
+  variables: Record<string, unknown>,
+): Promise<T> {
+  const body = JSON.stringify({ operationName, query, variables })
+
+  try {
+    const session = await acquireCsrf()
+    return await graphqlFetch<T>(operationName, body, session)
+  } catch (err) {
+    if (err instanceof Error && (err as { status?: number }).status === 403) {
+      // 세션 만료 가능성 → 캐시 무효화 후 1회 재시도
+      cached = null
+      const freshSession = await acquireCsrf()
+      return graphqlFetch<T>(operationName, body, freshSession)
+    }
+    throw err
+  }
 }
 
 const USERSTATUS_QUERY = /* GraphQL */ `

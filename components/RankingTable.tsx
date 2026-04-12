@@ -1,5 +1,6 @@
 import Link from "next/link"
-import type { RankingEntry, RankingType } from "@/lib/ranking"
+import { formatDays } from "@/lib/aggregate"
+import { RANKING_LABELS, type RankingEntry, type RankingType } from "@/lib/ranking"
 
 interface Props {
   type: RankingType
@@ -20,41 +21,12 @@ function valueFor(type: RankingType, e: RankingEntry): string {
       return fmt(e.totalClones)
     case "blocks":
       return fmt(e.totalBlocks)
-    case "activity": {
-      const days = e.activityDays
-      if (days < 30) return `${days}일`
-      const months = Math.floor(days / 30.44)
-      const years = Math.floor(months / 12)
-      const remMonths = months % 12
-      if (years === 0) return `${months}개월`
-      if (remMonths === 0) return `${years}년`
-      return `${years}년 ${remMonths}개월`
-    }
+    case "activity":
+      return formatDays(e.activityDays)
     case "popular":
       return `${fmt(e.popularCount)}개`
     case "staff":
       return `${fmt(e.staffCount)}개`
-  }
-}
-
-function unitLabel(type: RankingType): string {
-  switch (type) {
-    case "views":
-      return "조회수"
-    case "likes":
-      return "좋아요"
-    case "comments":
-      return "댓글"
-    case "clones":
-      return "사본"
-    case "blocks":
-      return "사용 블록"
-    case "activity":
-      return "활동 기간"
-    case "popular":
-      return "인기 작품"
-    case "staff":
-      return "스태프 선정"
   }
 }
 
@@ -83,7 +55,7 @@ export default function RankingTable({ type, entries }: Props) {
           <tr>
             <th className="px-4 py-3 text-left">순위</th>
             <th className="px-4 py-3 text-left">닉네임</th>
-            <th className="px-4 py-3 text-right">{unitLabel(type)}</th>
+            <th className="px-4 py-3 text-right">{RANKING_LABELS[type]}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">

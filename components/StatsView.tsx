@@ -7,7 +7,7 @@ import {
   type AggregatedStats,
   type LatestActivity,
 } from "@/lib/aggregate"
-import type { RankingType, UserRankPositions } from "@/lib/ranking"
+import { RANKING_LABELS, type RankingType, type UserRankPositions } from "@/lib/ranking-types"
 import StatCards from "./StatCards"
 import FlagsPieChart from "./FlagsPieChart"
 import CategoryChart from "./CategoryChart"
@@ -97,17 +97,6 @@ function UserHeader({
   )
 }
 
-const RANK_LABELS: Record<RankingType, string> = {
-  views: "조회수",
-  likes: "좋아요",
-  comments: "댓글",
-  clones: "사본",
-  blocks: "사용 블록",
-  activity: "활동 기간",
-  popular: "인기 작품",
-  staff: "스태프 선정",
-}
-
 const RANK_COLORS: Record<number, string> = {
   1: "bg-amber-100 text-amber-800 ring-amber-300",
   2: "bg-slate-200 text-slate-700 ring-slate-300",
@@ -132,7 +121,7 @@ function RankingBadges({ positions }: { positions: UserRankPositions }) {
             RANK_COLORS[rank] ?? RANK_DEFAULT
           }`}
         >
-          <span>{RANK_LABELS[type]}</span>
+          <span>{RANKING_LABELS[type]}</span>
           <span>{rank}위</span>
         </Link>
       ))}

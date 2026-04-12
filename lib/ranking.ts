@@ -13,30 +13,24 @@ import { Timestamp, FieldValue } from "firebase-admin/firestore"
 import { getDb } from "@/lib/firebase"
 import { cacheGet, cacheSet } from "@/lib/cache"
 import type { AggregatedStats } from "@/lib/aggregate"
+import {
+  RANKING_TYPES,
+  type RankingType,
+  type RankingEntry,
+  type UserRankPositions,
+} from "@/lib/ranking-types"
+
+// 클라이언트 안전 타입/상수를 re-export (서버 코드에서도 한 곳에서 import 가능)
+export {
+  RANKING_TYPES,
+  RANKING_LABELS,
+  type RankingType,
+  type RankingEntry,
+  type UserRankPositions,
+} from "@/lib/ranking-types"
 
 const COLLECTION = "ent2_users"
 const MIN_REFRESH_MS = 60 * 60 * 1000 // 1시간
-
-export type RankingType =
-  | "views"
-  | "likes"
-  | "comments"
-  | "clones"
-  | "blocks"
-  | "activity"
-  | "popular"
-  | "staff"
-
-export const RANKING_TYPES: RankingType[] = [
-  "views",
-  "likes",
-  "comments",
-  "clones",
-  "blocks",
-  "activity",
-  "popular",
-  "staff",
-]
 
 /** RankingType → Firestore 필드명 */
 const FIELD_MAP: Record<RankingType, string> = {
@@ -48,21 +42,6 @@ const FIELD_MAP: Record<RankingType, string> = {
   activity: "activityDays",
   popular: "popularCount",
   staff: "staffCount",
-}
-
-export interface RankingEntry {
-  id: string
-  nickname: string
-  totalProjects: number
-  totalViews: number
-  totalLikes: number
-  totalComments: number
-  totalClones: number
-  totalBlocks: number
-  activityDays: number
-  popularCount: number
-  staffCount: number
-  truncated: boolean
 }
 
 function activityDaysFromCreated(createdIso: string): number {
@@ -161,8 +140,6 @@ export async function getRanking(
 // ---------------------------------------------------------------------------
 // 유저별 랭킹 순위 조회
 // ---------------------------------------------------------------------------
-
-export type UserRankPositions = Partial<Record<RankingType, number>>
 
 const RANKING_CACHE_TTL = 60_000 // 1분
 
