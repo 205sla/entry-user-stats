@@ -19,16 +19,20 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps) {
   const { id } = await params
-  if (!isValidEntryId(id)) return { title: "잘못된 ID — 유저 찾기" }
+  if (!isValidEntryId(id)) return { title: "잘못된 ID", robots: { index: false } }
   try {
     const user = await fetchUserStatus(id)
-    if (!user) return { title: "유저 없음 — 유저 찾기" }
+    if (!user) return { title: "유저 없음", robots: { index: false } }
+    const title = `${user.nickname}님의 통계`
+    const description = `${user.nickname}님의 엔트리 작품 통계`
     return {
-      title: `${user.nickname}님의 통계 — 유저 찾기`,
-      description: `${user.nickname}님의 엔트리 작품 통계`,
+      title,
+      description,
+      openGraph: { title: `${title} — 유저 찾기`, description },
+      robots: { index: false, follow: true },
     }
   } catch {
-    return { title: "Ent2" }
+    return { title: "유저 찾기" }
   }
 }
 

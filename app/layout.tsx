@@ -1,9 +1,50 @@
 import type { Metadata } from "next"
 import "./globals.css"
 
+const SITE_URL = "https://xn--ok0bx68bhtav5k.xn--oy2b95t44j.org"
+const SITE_NAME = "유저 찾기"
+const DESCRIPTION = "엔트리 프로필 링크를 붙여넣으면 작품 통계를 보여줍니다."
+
 export const metadata: Metadata = {
-  title: "유저 찾기 — 엔트리 유저 통계",
-  description: "엔트리 프로필 링크를 붙여넣으면 작품 통계를 보여줍니다.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: `${SITE_NAME} — 엔트리 유저 통계`,
+    template: `%s — ${SITE_NAME}`,
+  },
+  description: DESCRIPTION,
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} — 엔트리 유저 통계`,
+    description: DESCRIPTION,
+    locale: "ko_KR",
+    url: SITE_URL,
+  },
+  twitter: {
+    card: "summary",
+    title: `${SITE_NAME} — 엔트리 유저 통계`,
+    description: DESCRIPTION,
+  },
+  alternates: {
+    canonical: "/",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+}
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: SITE_NAME,
+  url: SITE_URL,
+  description: DESCRIPTION,
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${SITE_URL}/u/{search_term_string}`,
+    "query-input": "required name=search_term_string",
+  },
 }
 
 export default function RootLayout({
@@ -13,6 +54,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body className="min-h-screen font-sans">
         {children}
         <footer className="border-t border-slate-200 bg-white px-6 py-6 text-center text-xs leading-relaxed text-slate-500">

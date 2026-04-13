@@ -9,8 +9,15 @@ import {
 } from "@/lib/ranking"
 
 export const metadata = {
-  title: "랭킹 — 유저 찾기",
-  description: "엔트리 유저 부문별 랭킹",
+  title: "랭킹",
+  description: "검색된 엔트리 유저 중 부문별 상위 사용자를 보여줍니다.",
+  openGraph: {
+    title: "랭킹 — 유저 찾기",
+    description: "검색된 엔트리 유저 중 부문별 상위 사용자를 보여줍니다.",
+  },
+  alternates: {
+    canonical: "/ranking",
+  },
 }
 
 // ISR: 60초마다 재검증 (Firestore read 절약)
