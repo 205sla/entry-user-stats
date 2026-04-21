@@ -2,9 +2,9 @@ import type { EntryProject, EntryUserStatus } from "./entry-api"
 
 /**
  * 정확한 통계를 표시할 수 있는 최대 작품 수.
- * fetchAllUserProjects 의 maxCalls(4) × display(50) 와 반드시 일치해야 한다.
+ * fetchAllUserProjects 의 maxCalls(6) × display(50) 와 반드시 일치해야 한다.
  */
-export const MAX_PROJECTS = 200
+export const MAX_PROJECTS = 300
 
 /** 엔트리 categoryCode → 한글 라벨 매핑 */
 const CATEGORY_LABELS: Record<string, string> = {

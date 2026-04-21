@@ -231,7 +231,7 @@ interface UserProjectsPage {
  * 한 유저의 작품 목록을 offset 페이지네이션으로 가져온다.
  * - 50개씩 페이지로 요청
  * - list가 비거나 누적이 total에 도달하면 종료
- * - 최대 maxCalls번까지만 호출 (하드 캡, 기본 4회 = 200개)
+ * - 최대 maxCalls번까지만 호출 (하드 캡, 기본 6회 = 300개)
  *
  * 반환되는 total은 엔트리 API가 응답한 전체 작품 수이므로,
  * total > projects.length 인 경우 일부만 집계된 것이다.
@@ -241,7 +241,7 @@ export async function fetchAllUserProjects(
   opts: { display?: number; maxCalls?: number } = {},
 ): Promise<{ total: number; projects: EntryProject[] }> {
   const display = opts.display ?? 50
-  const maxCalls = opts.maxCalls ?? 4
+  const maxCalls = opts.maxCalls ?? 6
 
   const all: EntryProject[] = []
   const seen = new Set<string>()

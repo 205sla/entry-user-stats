@@ -106,7 +106,7 @@ export default async function RankingPage({ searchParams }: PageProps) {
           </p>
           {type !== "activity" && (
             <p className="mt-2 text-xs text-slate-500">
-              ※ 작품 200개 초과 유저는 부분 집계라 활동 기간 외 부문에서는 제외됩니다.
+              ※ 작품 300개 초과 유저는 부분 집계라 활동 기간 외 부문에서는 제외됩니다.
             </p>
           )}
         </section>
