@@ -22,14 +22,11 @@ interface Props {
   initialState: StatePublic
 }
 
-async function callStep(
-  source: CrawlSource,
-  action: "step" | "reset",
-): Promise<StatePublic> {
+async function callStep(source: CrawlSource): Promise<StatePublic> {
   const res = await fetch(`/api/crawl/${source}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action }),
+    body: JSON.stringify({ action: "step" }),
     cache: "no-store",
   })
   if (!res.ok) {
@@ -59,7 +56,7 @@ export default function CrawlerClient({ source, initialState }: Props) {
     if (inflightRef.current) return
     inflightRef.current = true
     try {
-      const next = await callStep(source, "step")
+      const next = await callStep(source)
       setState(next)
       setError(null)
       if (next.phase === "done") {
@@ -87,19 +84,6 @@ export default function CrawlerClient({ source, initialState }: Props) {
       }
     }
   }, [running, state.phase, step])
-
-  async function handleReset() {
-    if (!confirm("정말 처음부터 다시 시작할까요? 현재 상태가 삭제됩니다.")) return
-    try {
-      const fresh = await callStep(source, "reset")
-      setState(fresh)
-      setError(null)
-      setRunning(true)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      setError(msg)
-    }
-  }
 
   function togglePause() {
     setRunning((r) => !r)
@@ -227,8 +211,8 @@ export default function CrawlerClient({ source, initialState }: Props) {
         </div>
       )}
 
-      <div className="flex gap-3">
-        {!isDone && (
+      {!isDone && (
+        <div className="flex gap-3">
           <button
             type="button"
             onClick={togglePause}
@@ -236,15 +220,8 @@ export default function CrawlerClient({ source, initialState }: Props) {
           >
             {running ? "⏸ Pause" : "▶ Resume"}
           </button>
-        )}
-        <button
-          type="button"
-          onClick={handleReset}
-          className="rounded-lg border border-rose-200 bg-white px-5 py-2 text-sm font-medium text-rose-700 shadow-sm transition hover:bg-rose-50"
-        >
-          🔄 Reset (처음부터)
-        </button>
-      </div>
+        </div>
+      )}
 
       <p className="text-xs leading-relaxed text-slate-500">
         탭을 닫아도 상태는 Firestore 에 저장되고, 다시 이 페이지를 열면 이어서

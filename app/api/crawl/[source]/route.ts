@@ -18,7 +18,6 @@ import { getStatsForUser } from "@/lib/stats-service"
 import {
   getCrawlState,
   saveCrawlState,
-  resetCrawlState,
   type CrawlState,
 } from "@/lib/crawl-state"
 import { isCrawlSource, type CrawlSource } from "@/lib/crawl-sources"
@@ -79,25 +78,8 @@ export async function POST(request: Request, context: RouteContext) {
   if (sourceOrError instanceof NextResponse) return sourceOrError
   const source = sourceOrError
 
-  let body: { action?: string } = {}
-  try {
-    body = await request.json()
-  } catch {
-    // body 없으면 step 으로 간주
-  }
-  const action = body.action ?? "step"
-
-  if (action === "reset") {
-    try {
-      await resetCrawlState(source)
-      const state = await getCrawlState(source)
-      return NextResponse.json(toPublic(state))
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      return NextResponse.json({ error: msg }, { status: 500 })
-    }
-  }
-
+  // action 파라미터는 무시하고 항상 step 동작 수행.
+  // 리셋은 URL 접근 인증이 없어 API 레벨에서도 차단 (Firestore Console 에서 수동 삭제).
   try {
     const state = await getCrawlState(source)
 

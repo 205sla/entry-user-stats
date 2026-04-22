@@ -1,5 +1,5 @@
 {
-  "_comment": "Firestore composite indexes for ent2_users ranking queries. activityDays uses single-field auto-index (no composite needed). Other 7 fields combine `where truncated == false` with `orderBy <field> desc` so each requires its own composite index. Firebase will auto-prompt to create these on the first failing query (the error includes a one-click create link), or you can deploy this file via `firebase deploy --only firestore:indexes`.",
+  "_comment": "Firestore composite indexes for ent2_users. Each of the 7 non-activity ranking fields needs TWO composite indexes: one DESC (for /ranking page orderBy) and one ASC (for getUserRankPositions count with `where field > X`). Firestore requires direction-specific indexes even for count queries. activityDays uses single-field auto-index only. Deploy via `firebase deploy --only firestore:indexes`.",
   "indexes": [
     {
       "collectionGroup": "ent2_users",
@@ -7,6 +7,14 @@
       "fields": [
         { "fieldPath": "truncated", "order": "ASCENDING" },
         { "fieldPath": "totalViews", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ent2_users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "truncated", "order": "ASCENDING" },
+        { "fieldPath": "totalViews", "order": "ASCENDING" }
       ]
     },
     {
@@ -22,7 +30,23 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "truncated", "order": "ASCENDING" },
+        { "fieldPath": "totalLikes", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ent2_users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "truncated", "order": "ASCENDING" },
         { "fieldPath": "totalComments", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ent2_users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "truncated", "order": "ASCENDING" },
+        { "fieldPath": "totalComments", "order": "ASCENDING" }
       ]
     },
     {
@@ -38,7 +62,23 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "truncated", "order": "ASCENDING" },
+        { "fieldPath": "totalClones", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ent2_users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "truncated", "order": "ASCENDING" },
         { "fieldPath": "totalBlocks", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ent2_users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "truncated", "order": "ASCENDING" },
+        { "fieldPath": "totalBlocks", "order": "ASCENDING" }
       ]
     },
     {
@@ -54,7 +94,23 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "truncated", "order": "ASCENDING" },
+        { "fieldPath": "popularCount", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ent2_users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "truncated", "order": "ASCENDING" },
         { "fieldPath": "staffCount", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ent2_users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "truncated", "order": "ASCENDING" },
+        { "fieldPath": "staffCount", "order": "ASCENDING" }
       ]
     }
   ],

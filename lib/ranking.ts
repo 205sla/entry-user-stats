@@ -182,11 +182,18 @@ export async function getUserRankPositions(
   userId: string,
   stats: AggregatedStats,
 ): Promise<UserRankPositions> {
+  let db
   try {
-    const db = getDb()
-    const collection = db.collection(COLLECTION)
+    db = getDb()
+  } catch (err) {
+    console.warn("[ranking] Firebase 초기화 실패:", err)
+    return {}
+  }
+  const collection = db.collection(COLLECTION)
 
-    const tasks = RANKING_TYPES.map(async (type) => {
+  // 부문별로 독립된 try/catch — 한 부문이 실패해도 다른 부문 뱃지는 표시
+  const tasks = RANKING_TYPES.map(async (type) => {
+    try {
       // truncated 유저는 활동 기간 외 부문에서 제외
       if (stats.truncated && type !== "activity") {
         return { type, rank: null as number | null }
@@ -207,17 +214,20 @@ export async function getUserRankPositions(
         type,
         rank: rank <= MAX_DISPLAYED_RANK ? rank : null,
       }
-    })
-
-    const results = await Promise.all(tasks)
-
-    const positions: UserRankPositions = {}
-    for (const { type, rank } of results) {
-      if (rank !== null) positions[type] = rank
+    } catch (err) {
+      console.warn(
+        `[ranking] count query failed for type="${type}":`,
+        err instanceof Error ? err.message : err,
+      )
+      return { type, rank: null as number | null }
     }
-    return positions
-  } catch (err) {
-    console.warn("[ranking] getUserRankPositions 실패:", err)
-    return {}
+  })
+
+  const results = await Promise.all(tasks)
+
+  const positions: UserRankPositions = {}
+  for (const { type, rank } of results) {
+    if (rank !== null) positions[type] = rank
   }
+  return positions
 }
