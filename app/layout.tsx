@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import "./globals.css"
+import ToolsFamilyLink from "@/components/ToolsFamilyLink"
 
 const SITE_URL = "https://xn--ok0bx68bhtav5k.xn--oy2b95t44j.org"
 const SITE_NAME = "유저 찾기.엔트리.org"
@@ -62,18 +63,10 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen font-sans">
         {children}
-        <footer className="border-t border-slate-200 bg-white px-6 py-6 text-center text-xs leading-relaxed text-slate-500">
-          <p className="mb-4 text-sm text-slate-700">
-            다른 도구 보러가기 :{" "}
-            <a
-              href="https://도구.엔트리.org"
-              target="_blank"
-              rel="noreferrer"
-              className="font-semibold text-brand-600 underline underline-offset-2 transition hover:text-brand-700"
-            >
-              도구.엔트리.org →
-            </a>
-          </p>
+        <footer className="border-t border-slate-200 bg-white px-6 py-8 text-center text-xs leading-relaxed text-slate-500">
+          <div className="mb-6 flex justify-center">
+            <ToolsFamilyLink />
+          </div>
           <p>
             이 페이지는{" "}
             <a
