@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 const SITE_URL = "https://xn--ok0bx68bhtav5k.xn--oy2b95t44j.org"
-const SITE_NAME = "유저 찾기"
+const SITE_NAME = "유저 찾기.엔트리.org"
 const DESCRIPTION = "엔트리 프로필 링크를 붙여넣으면 작품 통계를 보여줍니다."
 
 export const metadata: Metadata = {
@@ -63,6 +63,17 @@ export default function RootLayout({
       <body className="min-h-screen font-sans">
         {children}
         <footer className="border-t border-slate-200 bg-white px-6 py-6 text-center text-xs leading-relaxed text-slate-500">
+          <p className="mb-4 text-sm text-slate-700">
+            다른 도구 보러가기 :{" "}
+            <a
+              href="https://도구.엔트리.org"
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-brand-600 underline underline-offset-2 transition hover:text-brand-700"
+            >
+              도구.엔트리.org →
+            </a>
+          </p>
           <p>
             이 페이지는{" "}
             <a

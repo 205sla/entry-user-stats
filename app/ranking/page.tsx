@@ -12,7 +12,7 @@ export const metadata = {
   title: "랭킹",
   description: "검색된 엔트리 유저 중 부문별 상위 사용자를 보여줍니다.",
   openGraph: {
-    title: "랭킹 — 유저 찾기",
+    title: "랭킹 — 유저 찾기.엔트리.org",
     description: "검색된 엔트리 유저 중 부문별 상위 사용자를 보여줍니다.",
   },
   alternates: {

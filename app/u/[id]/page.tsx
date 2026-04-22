@@ -28,11 +28,11 @@ export async function generateMetadata({ params }: PageProps) {
     return {
       title,
       description,
-      openGraph: { title: `${title} — 유저 찾기`, description },
+      openGraph: { title: `${title} — 유저 찾기.엔트리.org`, description },
       robots: { index: false, follow: true },
     }
   } catch {
-    return { title: "유저 찾기" }
+    return { title: "유저 찾기.엔트리.org" }
   }
 }
 

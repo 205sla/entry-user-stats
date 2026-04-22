@@ -13,7 +13,7 @@ export default async function HomePage() {
       <div className="w-full max-w-2xl">
         <header className="mb-10 text-center">
           <h1 className="text-4xl font-bold tracking-tight text-slate-900">
-            유저 찾기
+            유저 찾기<span className="text-slate-400">.</span>엔트리<span className="text-slate-400">.</span>org
           </h1>
           <p className="mt-3 text-slate-600">
             엔트리 프로필 링크 또는 닉네임으로 작품 통계를 찾아봅니다.
