@@ -11,7 +11,6 @@
 
 import { Timestamp, FieldValue } from "firebase-admin/firestore"
 import { getDb } from "@/lib/firebase"
-import { cacheGet, cacheSet } from "@/lib/cache"
 import type { AggregatedStats } from "@/lib/aggregate"
 import {
   RANKING_TYPES,
@@ -138,38 +137,83 @@ export async function getRanking(
 }
 
 // ---------------------------------------------------------------------------
-// 유저별 랭킹 순위 조회
+// 유저별 랭킹 순위 조회 (Firestore count aggregation)
 // ---------------------------------------------------------------------------
 
-const RANKING_CACHE_TTL = 60_000 // 1분
+const MAX_DISPLAYED_RANK = 100
+
+/** RankingType → 유저 통계에서 해당 부문의 값 추출 */
+function getUserValueForType(
+  type: RankingType,
+  stats: AggregatedStats,
+): number {
+  switch (type) {
+    case "views":
+      return stats.totals.views
+    case "likes":
+      return stats.totals.likes
+    case "comments":
+      return stats.totals.comments
+    case "clones":
+      return stats.totals.clones
+    case "blocks":
+      return stats.totals.totalBlocks
+    case "activity":
+      return activityDaysFromCreated(stats.user.created)
+    case "popular":
+      return stats.totals.ranked
+    case "staff":
+      return stats.totals.staffPicked
+  }
+}
 
 /**
  * 유저가 top 100 에 포함된 부문과 순위를 반환한다.
- * 8개 부문을 병렬 조회하며 결과는 1분간 캐시해 Firestore read 절약.
- * Firebase 미설정 등으로 실패하면 빈 객체를 반환한다 (페이지 렌더에 영향 없음).
+ *
+ * 각 부문에 대해 Firestore count() aggregation 으로 "유저보다 값이 큰 다른 유저 수"
+ * 를 세어 순위 계산. 각 쿼리는 매칭된 문서 1000개당 1 read 로 과금되므로 유저 풀이
+ * 작을 땐 부문당 ~1 read (총 8 reads) 로 매우 저렴.
+ *
+ * - truncated 유저는 활동 기간 외 부문에서 제외 (기존 정책)
+ * - rank > 100 이면 뱃지 미노출
+ * - 항상 실시간 데이터 (캐시 없음 — count aggregation 이 충분히 저렴)
  */
 export async function getUserRankPositions(
   userId: string,
+  stats: AggregatedStats,
 ): Promise<UserRankPositions> {
   try {
-    const results = await Promise.all(
-      RANKING_TYPES.map(async (type) => {
-        const cacheKey = `ranking:${type}`
-        let entries = cacheGet<RankingEntry[]>(cacheKey)
-        if (!entries) {
-          entries = await getRanking(type, 100)
-          cacheSet(cacheKey, entries, RANKING_CACHE_TTL)
-        }
-        return { type, entries }
-      }),
-    )
+    const db = getDb()
+    const collection = db.collection(COLLECTION)
+
+    const tasks = RANKING_TYPES.map(async (type) => {
+      // truncated 유저는 활동 기간 외 부문에서 제외
+      if (stats.truncated && type !== "activity") {
+        return { type, rank: null as number | null }
+      }
+
+      const field = FIELD_MAP[type]
+      const userValue = getUserValueForType(type, stats)
+
+      const base =
+        type === "activity"
+          ? collection
+          : collection.where("truncated", "==", false)
+
+      const snap = await base.where(field, ">", userValue).count().get()
+      const rank = snap.data().count + 1
+
+      return {
+        type,
+        rank: rank <= MAX_DISPLAYED_RANK ? rank : null,
+      }
+    })
+
+    const results = await Promise.all(tasks)
 
     const positions: UserRankPositions = {}
-    for (const { type, entries } of results) {
-      const idx = entries.findIndex((e) => e.id === userId)
-      if (idx !== -1) {
-        positions[type] = idx + 1
-      }
+    for (const { type, rank } of results) {
+      if (rank !== null) positions[type] = rank
     }
     return positions
   } catch (err) {

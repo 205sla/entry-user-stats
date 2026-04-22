@@ -67,11 +67,14 @@ export default async function UserStatsPage({ params }: PageProps) {
     )
   }
 
-  const [result, rankPositions] = await Promise.all([
-    getStatsForUser(id),
-    getUserRankPositions(id).catch((): UserRankPositions => ({})),
-  ])
+  const result = await getStatsForUser(id)
   if (!result) notFound()
+
+  // 랭킹 순위는 유저 통계 값이 필요해서 순차 호출
+  // (각 부문당 1 Firestore count read 로 저렴하므로 레이턴시 영향 미미)
+  const rankPositions = await getUserRankPositions(id, result.stats).catch(
+    (): UserRankPositions => ({}),
+  )
 
   return (
     <main className="min-h-screen px-6 py-12">
