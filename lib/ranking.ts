@@ -144,7 +144,7 @@ export async function getRanking(
 const RANKING_CACHE_TTL = 60_000 // 1분
 
 /**
- * 유저가 top 20 에 포함된 부문과 순위를 반환한다.
+ * 유저가 top 100 에 포함된 부문과 순위를 반환한다.
  * 8개 부문을 병렬 조회하며 결과는 1분간 캐시해 Firestore read 절약.
  * Firebase 미설정 등으로 실패하면 빈 객체를 반환한다 (페이지 렌더에 영향 없음).
  */
@@ -157,7 +157,7 @@ export async function getUserRankPositions(
         const cacheKey = `ranking:${type}`
         let entries = cacheGet<RankingEntry[]>(cacheKey)
         if (!entries) {
-          entries = await getRanking(type, 20)
+          entries = await getRanking(type, 100)
           cacheSet(cacheKey, entries, RANKING_CACHE_TTL)
         }
         return { type, entries }

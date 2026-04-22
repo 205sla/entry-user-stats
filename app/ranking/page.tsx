@@ -118,7 +118,7 @@ export default async function RankingPage({ searchParams }: PageProps) {
 async function RankingContent({ type }: { type: RankingType }) {
   let entries
   try {
-    entries = await getRanking(type, 20)
+    entries = await getRanking(type, 100)
   } catch (err) {
     console.error("[ranking] 조회 실패:", err)
     return <RankingError />

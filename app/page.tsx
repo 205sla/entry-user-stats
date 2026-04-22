@@ -1,7 +1,13 @@
 import Link from "next/link"
 import UrlForm from "@/components/UrlForm"
+import { getNicknameIndex } from "@/lib/nickname-index"
 
-export default function HomePage() {
+// ISR: 5분마다 재검증 (nickname index 캐시와 일치)
+export const revalidate = 300
+
+export default async function HomePage() {
+  const nicknameIndex = await getNicknameIndex()
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6 py-16">
       <div className="w-full max-w-2xl">
@@ -10,11 +16,11 @@ export default function HomePage() {
             유저 찾기
           </h1>
           <p className="mt-3 text-slate-600">
-            엔트리 프로필 링크를 붙여넣으면 작품 통계를 보여줍니다.
+            엔트리 프로필 링크 또는 닉네임으로 작품 통계를 찾아봅니다.
           </p>
         </header>
 
-        <UrlForm />
+        <UrlForm nicknameIndex={nicknameIndex} />
 
         <div className="mt-6 text-center">
           <Link
@@ -36,7 +42,7 @@ export default function HomePage() {
             공개된 프로필 데이터만 조회합니다. 비영리·개인 열람 용도로만 사용하세요.
           </p>
           <p>
-            검색한 유저는 랭킹에 자동으로 등록됩니다.
+            검색한 유저는 랭킹 및 닉네임 검색 결과에 자동으로 등록됩니다.
           </p>
         </section>
 
