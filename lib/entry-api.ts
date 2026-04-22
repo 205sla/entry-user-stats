@@ -315,3 +315,92 @@ export async function fetchLatestUpdatedProject(
   )
   return data.userProjectList.list?.[0] ?? null
 }
+
+// ---------------------------------------------------------------------------
+// 스태프 선정 작품 목록 (크롤러 용도)
+// ---------------------------------------------------------------------------
+
+export interface StaffPickProject {
+  id: string
+  user: {
+    id: string
+    nickname: string
+  } | null
+}
+
+const STAFF_PICK_QUERY = /* GraphQL */ `
+  query SELECT_PROJECTS(
+    $query: String
+    $staffPicked: Boolean
+    $term: String
+    $pageParam: PageParam
+    $searchType: String
+    $searchAfter: JSON
+  ) {
+    projectList(
+      query: $query
+      staffPicked: $staffPicked
+      term: $term
+      pageParam: $pageParam
+      searchType: $searchType
+      searchAfter: $searchAfter
+    ) {
+      total
+      list {
+        id
+        user {
+          id
+          nickname
+        }
+      }
+      searchAfter
+    }
+  }
+`
+
+interface ProjectListResult {
+  projectList: {
+    total: number
+    list: StaffPickProject[]
+    searchAfter: unknown[] | null
+  }
+}
+
+/**
+ * 스태프 선정 작품을 페이지네이션으로 가져온다.
+ * Entry 의 목록 페이지는 searchAfter 커서 기반 scroll pagination 사용.
+ *
+ * @param searchAfter 이전 응답의 searchAfter (첫 호출은 null)
+ * @param display 페이지당 작품 수 (기본 50)
+ */
+export async function fetchStaffPickProjects(
+  searchAfter: unknown[] | null,
+  display = 50,
+): Promise<{
+  total: number
+  list: StaffPickProject[]
+  searchAfter: unknown[] | null
+}> {
+  const variables: Record<string, unknown> = {
+    query: "",
+    staffPicked: true,
+    term: "all",
+    pageParam: { sort: "staffPicked", display },
+    searchType: "scroll",
+  }
+  if (searchAfter !== null) {
+    variables.searchAfter = searchAfter
+  }
+
+  const data = await graphql<ProjectListResult>(
+    "SELECT_PROJECTS",
+    STAFF_PICK_QUERY,
+    variables,
+  )
+
+  return {
+    total: data.projectList.total,
+    list: data.projectList.list ?? [],
+    searchAfter: data.projectList.searchAfter ?? null,
+  }
+}
