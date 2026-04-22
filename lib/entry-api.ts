@@ -317,10 +317,12 @@ export async function fetchLatestUpdatedProject(
 }
 
 // ---------------------------------------------------------------------------
-// 스태프 선정 작품 목록 (크롤러 용도)
+// 프로젝트 목록 (크롤러 용도) — 스태프 선정 / 인기 작품 등
 // ---------------------------------------------------------------------------
 
-export interface StaffPickProject {
+import { CRAWL_SOURCE_CONFIG, type CrawlSource } from "@/lib/crawl-sources"
+
+export interface ListProject {
   id: string
   user: {
     id: string
@@ -328,10 +330,11 @@ export interface StaffPickProject {
   } | null
 }
 
-const STAFF_PICK_QUERY = /* GraphQL */ `
+const PROJECT_LIST_QUERY = /* GraphQL */ `
   query SELECT_PROJECTS(
     $query: String
     $staffPicked: Boolean
+    $ranked: Boolean
     $term: String
     $pageParam: PageParam
     $searchType: String
@@ -340,6 +343,7 @@ const STAFF_PICK_QUERY = /* GraphQL */ `
     projectList(
       query: $query
       staffPicked: $staffPicked
+      ranked: $ranked
       term: $term
       pageParam: $pageParam
       searchType: $searchType
@@ -361,32 +365,35 @@ const STAFF_PICK_QUERY = /* GraphQL */ `
 interface ProjectListResult {
   projectList: {
     total: number
-    list: StaffPickProject[]
+    list: ListProject[]
     searchAfter: unknown[] | null
   }
 }
 
 /**
- * 스태프 선정 작품을 페이지네이션으로 가져온다.
- * Entry 의 목록 페이지는 searchAfter 커서 기반 scroll pagination 사용.
+ * Entry 의 작품 목록을 source 별로 가져온다 (scroll / searchAfter 커서 기반).
  *
+ * @param source "staffpick" | "popular" — CRAWL_SOURCE_CONFIG 에 등록된 값
  * @param searchAfter 이전 응답의 searchAfter (첫 호출은 null)
  * @param display 페이지당 작품 수 (기본 50)
  */
-export async function fetchStaffPickProjects(
+export async function fetchProjectList(
+  source: CrawlSource,
   searchAfter: unknown[] | null,
   display = 50,
 ): Promise<{
   total: number
-  list: StaffPickProject[]
+  list: ListProject[]
   searchAfter: unknown[] | null
 }> {
+  const config = CRAWL_SOURCE_CONFIG[source]
+
   const variables: Record<string, unknown> = {
     query: "",
-    staffPicked: true,
     term: "all",
-    pageParam: { sort: "staffPicked", display },
+    pageParam: { sort: config.sort, display },
     searchType: "scroll",
+    ...config.filter, // staffPicked: true 또는 ranked: true
   }
   if (searchAfter !== null) {
     variables.searchAfter = searchAfter
@@ -394,7 +401,7 @@ export async function fetchStaffPickProjects(
 
   const data = await graphql<ProjectListResult>(
     "SELECT_PROJECTS",
-    STAFF_PICK_QUERY,
+    PROJECT_LIST_QUERY,
     variables,
   )
 

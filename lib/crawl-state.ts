@@ -1,5 +1,9 @@
 /**
- * 스태프 선정 크롤러의 Firestore 상태 관리.
+ * 크롤러의 Firestore 상태 관리.
+ *
+ * 각 source (staffpick / popular / ...) 마다 독립된 Firestore 도큐먼트 사용:
+ * - ent2_crawl_state/staffpick
+ * - ent2_crawl_state/popular
  *
  * 탭을 닫거나 서버가 재시작되어도 Firestore 에 저장된 상태를 통해
  * 중단된 지점부터 재개할 수 있다.
@@ -7,9 +11,9 @@
 
 import { Timestamp } from "firebase-admin/firestore"
 import { getDb } from "@/lib/firebase"
+import type { CrawlSource } from "@/lib/crawl-sources"
 
 const COLLECTION = "ent2_crawl_state"
-const DOC_ID = "staffpick"
 
 export type CrawlPhase = "idle" | "running" | "done"
 
@@ -51,12 +55,12 @@ const DEFAULT_STATE: CrawlState = {
   lastError: null,
 }
 
-function ref() {
-  return getDb().collection(COLLECTION).doc(DOC_ID)
+function ref(source: CrawlSource) {
+  return getDb().collection(COLLECTION).doc(source)
 }
 
-export async function getCrawlState(): Promise<CrawlState> {
-  const snap = await ref().get()
+export async function getCrawlState(source: CrawlSource): Promise<CrawlState> {
+  const snap = await ref(source).get()
   if (!snap.exists) return { ...DEFAULT_STATE }
   const data = snap.data() as Partial<CrawlState>
   return { ...DEFAULT_STATE, ...data }
@@ -67,12 +71,13 @@ export async function getCrawlState(): Promise<CrawlState> {
  * FieldValue (serverTimestamp 등) 혼용 가능하도록 타입은 느슨하게.
  */
 export async function saveCrawlState(
+  source: CrawlSource,
   update: Record<string, unknown>,
 ): Promise<void> {
-  await ref().set(update, { merge: true })
+  await ref(source).set(update, { merge: true })
 }
 
 /** 상태 초기화 (문서 삭제) */
-export async function resetCrawlState(): Promise<void> {
-  await ref().delete()
+export async function resetCrawlState(source: CrawlSource): Promise<void> {
+  await ref(source).delete()
 }

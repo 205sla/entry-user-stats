@@ -1,14 +1,30 @@
 import Link from "next/link"
+import { notFound } from "next/navigation"
 import { getCrawlState } from "@/lib/crawl-state"
+import {
+  CRAWL_SOURCE_CONFIG,
+  isCrawlSource,
+} from "@/lib/crawl-sources"
 import CrawlerClient from "./CrawlerClient"
-
-export const metadata = {
-  title: "크롤러 — 스태프 선정",
-  robots: { index: false, follow: false },
-}
 
 // 매번 최신 상태 로드
 export const dynamic = "force-dynamic"
+
+interface PageProps {
+  params: Promise<{ source: string }>
+}
+
+export async function generateMetadata({ params }: PageProps) {
+  const { source } = await params
+  if (!isCrawlSource(source)) {
+    return { title: "크롤러", robots: { index: false, follow: false } }
+  }
+  const config = CRAWL_SOURCE_CONFIG[source]
+  return {
+    title: `크롤러 — ${config.label}`,
+    robots: { index: false, follow: false },
+  }
+}
 
 interface StatePublic {
   phase: string
@@ -22,11 +38,16 @@ interface StatePublic {
   lastBatchAt: string | null
 }
 
-export default async function CrawlStaffpickPage() {
+export default async function CrawlerPage({ params }: PageProps) {
+  const { source } = await params
+  if (!isCrawlSource(source)) notFound()
+
+  const config = CRAWL_SOURCE_CONFIG[source]
+
   let initialState: StatePublic
   let loadError: string | null = null
   try {
-    const s = await getCrawlState()
+    const s = await getCrawlState(source)
     initialState = {
       phase: s.phase,
       listTotal: s.listTotal,
@@ -58,21 +79,23 @@ export default async function CrawlStaffpickPage() {
       <div className="mx-auto max-w-3xl">
         <header className="mb-8">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            스태프 선정 작품 크롤러
+            {config.label} 크롤러
           </h1>
           <p className="mt-2 text-sm text-slate-600">
             대상:{" "}
             <a
-              href="https://playentry.org/project/list/staffpick?sort=staffPicked&term=all"
+              href={config.entryUrl}
               target="_blank"
               rel="noreferrer"
               className="underline hover:text-brand-600"
             >
-              엔트리 스태프 선정 전체
+              엔트리 {config.label} 전체
             </a>
           </p>
           <p className="mt-1 text-xs text-slate-500">
-            작품 제작자를 자동으로 <code className="rounded bg-slate-100 px-1">ent2_users</code> 컬렉션에 등록합니다.
+            작품 제작자를 자동으로{" "}
+            <code className="rounded bg-slate-100 px-1">ent2_users</code>{" "}
+            컬렉션에 등록합니다.
           </p>
         </header>
 
@@ -87,7 +110,7 @@ export default async function CrawlStaffpickPage() {
             </p>
           </div>
         ) : (
-          <CrawlerClient initialState={initialState} />
+          <CrawlerClient source={source} initialState={initialState} />
         )}
 
         <nav className="mt-12 border-t border-slate-200 pt-6">

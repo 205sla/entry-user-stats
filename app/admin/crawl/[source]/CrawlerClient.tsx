@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import type { CrawlSource } from "@/lib/crawl-sources"
 
 const POLL_INTERVAL_MS = 5000
 
@@ -17,11 +18,15 @@ interface StatePublic {
 }
 
 interface Props {
+  source: CrawlSource
   initialState: StatePublic
 }
 
-async function callStep(action: "step" | "reset"): Promise<StatePublic> {
-  const res = await fetch("/api/crawl/staffpick", {
+async function callStep(
+  source: CrawlSource,
+  action: "step" | "reset",
+): Promise<StatePublic> {
+  const res = await fetch(`/api/crawl/${source}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ action }),
@@ -43,7 +48,7 @@ function formatTime(iso: string | null): string {
   return d.toLocaleTimeString("ko-KR")
 }
 
-export default function CrawlerClient({ initialState }: Props) {
+export default function CrawlerClient({ source, initialState }: Props) {
   const [state, setState] = useState<StatePublic>(initialState)
   const [running, setRunning] = useState(initialState.phase !== "done")
   const [error, setError] = useState<string | null>(null)
@@ -54,7 +59,7 @@ export default function CrawlerClient({ initialState }: Props) {
     if (inflightRef.current) return
     inflightRef.current = true
     try {
-      const next = await callStep("step")
+      const next = await callStep(source, "step")
       setState(next)
       setError(null)
       if (next.phase === "done") {
@@ -66,14 +71,12 @@ export default function CrawlerClient({ initialState }: Props) {
     } finally {
       inflightRef.current = false
     }
-  }, [])
+  }, [source])
 
-  // polling loop
   useEffect(() => {
     if (!running) return
     if (state.phase === "done") return
 
-    // 즉시 한 번 실행 + interval
     step()
     timerRef.current = setInterval(step, POLL_INTERVAL_MS)
 
@@ -88,7 +91,7 @@ export default function CrawlerClient({ initialState }: Props) {
   async function handleReset() {
     if (!confirm("정말 처음부터 다시 시작할까요? 현재 상태가 삭제됩니다.")) return
     try {
-      const fresh = await callStep("reset")
+      const fresh = await callStep(source, "reset")
       setState(fresh)
       setError(null)
       setRunning(true)

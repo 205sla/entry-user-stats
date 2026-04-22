@@ -1,19 +1,19 @@
 /**
- * 스태프 선정 크롤러 배치 실행 엔드포인트.
+ * 크롤러 배치 실행 엔드포인트 (동적 source 지원).
+ *
+ * POST /api/crawl/staffpick  — 스태프 선정 작품 크롤
+ * POST /api/crawl/popular    — 인기 작품 크롤
  *
  * POST 요청 1회 = 1 batch 실행:
  *   - 큐가 적으면 Entry 목록 1페이지 fetch (빠름, ~1s)
  *   - 그 외엔 큐에서 유저 최대 N명 처리 (~4~6s)
  *
- * 상태는 Firestore `ent2_crawl_state/staffpick` 에 영구 저장되어
- * 탭을 닫거나 서버가 재시작되어도 이어서 진행 가능.
- *
- * 접근 제한: URL 난독화 (다른 페이지에서 링크하지 않음).
+ * 상태는 Firestore `ent2_crawl_state/{source}` 에 영구 저장.
  */
 
 import { NextResponse } from "next/server"
 import { FieldValue } from "firebase-admin/firestore"
-import { fetchStaffPickProjects } from "@/lib/entry-api"
+import { fetchProjectList } from "@/lib/entry-api"
 import { getStatsForUser } from "@/lib/stats-service"
 import {
   getCrawlState,
@@ -21,14 +21,15 @@ import {
   resetCrawlState,
   type CrawlState,
 } from "@/lib/crawl-state"
+import { isCrawlSource, type CrawlSource } from "@/lib/crawl-sources"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 export const maxDuration = 10
 
 const LIST_DISPLAY = 50
-const LIST_REFILL_THRESHOLD = 10 // 큐가 이 수보다 적어지면 목록 fetch
-const USERS_PER_BATCH = 2 // 한 batch 에 처리할 유저 수 (10s 제한 고려)
+const LIST_REFILL_THRESHOLD = 10
+const USERS_PER_BATCH = 2
 
 interface StatePublic {
   phase: string
@@ -56,7 +57,28 @@ function toPublic(state: CrawlState): StatePublic {
   }
 }
 
-export async function POST(request: Request) {
+interface RouteContext {
+  params: Promise<{ source: string }>
+}
+
+async function resolveSource(
+  context: RouteContext,
+): Promise<CrawlSource | NextResponse> {
+  const { source } = await context.params
+  if (!isCrawlSource(source)) {
+    return NextResponse.json(
+      { error: `unknown source: ${source}` },
+      { status: 404 },
+    )
+  }
+  return source
+}
+
+export async function POST(request: Request, context: RouteContext) {
+  const sourceOrError = await resolveSource(context)
+  if (sourceOrError instanceof NextResponse) return sourceOrError
+  const source = sourceOrError
+
   let body: { action?: string } = {}
   try {
     body = await request.json()
@@ -67,8 +89,8 @@ export async function POST(request: Request) {
 
   if (action === "reset") {
     try {
-      await resetCrawlState()
-      const state = await getCrawlState()
+      await resetCrawlState(source)
+      const state = await getCrawlState(source)
       return NextResponse.json(toPublic(state))
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -76,11 +98,9 @@ export async function POST(request: Request) {
     }
   }
 
-  // action === "step"
   try {
-    const state = await getCrawlState()
+    const state = await getCrawlState(source)
 
-    // 이미 완료
     if (state.phase === "done") {
       return NextResponse.json(toPublic(state))
     }
@@ -93,12 +113,12 @@ export async function POST(request: Request) {
       updates.startedAt = FieldValue.serverTimestamp()
     }
 
-    // Phase A: 목록 fetch (큐 부족 + 아직 끝 아닌 경우)
     const shouldFetchList =
       !state.listDone && state.queue.length < LIST_REFILL_THRESHOLD
 
     if (shouldFetchList) {
-      const result = await fetchStaffPickProjects(
+      const result = await fetchProjectList(
+        source,
         state.searchAfter,
         LIST_DISPLAY,
       )
@@ -119,7 +139,6 @@ export async function POST(request: Request) {
       state.listTotal = result.total
       state.listFetched = state.listFetched + result.list.length
 
-      // 끝 도달 감지: 빈 페이지 또는 searchAfter null
       if (result.list.length === 0 || result.searchAfter === null) {
         state.listDone = true
       }
@@ -131,7 +150,6 @@ export async function POST(request: Request) {
       updates.listFetched = state.listFetched
       updates.listDone = state.listDone
     } else if (state.queue.length > 0) {
-      // Phase B: 유저 처리
       const toProcess = state.queue.slice(0, USERS_PER_BATCH)
       const remaining = state.queue.slice(USERS_PER_BATCH)
 
@@ -162,7 +180,6 @@ export async function POST(request: Request) {
       updates.processedCount = state.processedCount
     }
 
-    // 완료 조건: 목록 끝났고 큐 비었음
     if (state.listDone && state.queue.length === 0) {
       state.phase = "done"
       updates.phase = "done"
@@ -171,7 +188,7 @@ export async function POST(request: Request) {
     updates.lastError = null
     updates.lastBatchAt = FieldValue.serverTimestamp()
 
-    await saveCrawlState(updates)
+    await saveCrawlState(source, updates)
 
     return NextResponse.json({
       ...toPublic(state),
@@ -180,7 +197,7 @@ export async function POST(request: Request) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     try {
-      await saveCrawlState({
+      await saveCrawlState(source, {
         lastError: msg,
         lastBatchAt: FieldValue.serverTimestamp(),
       })
@@ -191,10 +208,13 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
-  // 현재 상태만 조회 (UI 에서 초기 로드용)
+export async function GET(_request: Request, context: RouteContext) {
+  const sourceOrError = await resolveSource(context)
+  if (sourceOrError instanceof NextResponse) return sourceOrError
+  const source = sourceOrError
+
   try {
-    const state = await getCrawlState()
+    const state = await getCrawlState(source)
     return NextResponse.json(toPublic(state))
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
