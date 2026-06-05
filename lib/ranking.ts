@@ -11,6 +11,7 @@
 
 import { Timestamp, FieldValue } from "firebase-admin/firestore"
 import { getDb } from "@/lib/firebase"
+import { upsertNicknameIndexEntry } from "@/lib/nickname-index"
 import type { AggregatedStats } from "@/lib/aggregate"
 import {
   RANKING_TYPES,
@@ -92,6 +93,14 @@ export async function recordRanking(stats: AggregatedStats): Promise<void> {
     }
 
     await ref.set(payload, { merge: true })
+
+    // 닉네임 자동완성 인덱스에도 경량 엔트리 반영 (검색 즉시 노출)
+    await upsertNicknameIndexEntry({
+      id: user.id,
+      nickname: user.nickname,
+      totalProjects: stats.totalProjects,
+      activityDays: activityDaysFromCreated(user.created),
+    })
   } catch (err) {
     console.warn("[ranking] recordRanking 실패:", err)
   }
