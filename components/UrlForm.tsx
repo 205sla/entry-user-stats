@@ -107,7 +107,7 @@ export default function UrlForm({ nicknameIndex }: Props) {
     // 4) 매칭 없음
     if (value.trim()) {
       setError(
-        "일치하는 닉네임이 없어요. 엔트리 프로필 URL 을 붙여넣어 주세요.",
+        "일치하는 닉네임이 없어요. 프로필 URL로 최초 1회 검색하면 닉네임 검색에 등록돼요.",
       )
     } else {
       setError("검색어를 입력해 주세요.")
@@ -130,7 +130,11 @@ export default function UrlForm({ nicknameIndex }: Props) {
     }
   }
 
+  const trimmedValue = value.trim()
+  const isNicknameQuery = trimmedValue.length > 0 && !looksLikeUrlOrId(value)
   const showDropdown = open && suggestions.length > 0
+  // 닉네임을 입력했지만 매칭이 없을 때: 프로필 URL 최초 1회 검색 안내
+  const showEmptyHint = open && isNicknameQuery && suggestions.length === 0
 
   return (
     <div ref={containerRef} className="relative">
@@ -213,6 +217,21 @@ export default function UrlForm({ nicknameIndex }: Props) {
             )
           })}
         </ul>
+      )}
+
+      {showEmptyHint && (
+        <div className="absolute left-0 right-0 top-[72px] z-10 mt-1 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-lg">
+          <p className="text-sm font-medium text-slate-900">
+            &lsquo;{trimmedValue}&rsquo; 검색 결과가 없어요.
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500">
+            아직 등록되지 않은 유저예요. 엔트리{" "}
+            <span className="font-medium text-slate-700">
+              프로필 URL로 최초 1회 검색
+            </span>
+            하면 닉네임으로도 찾을 수 있어요.
+          </p>
+        </div>
       )}
     </div>
   )
