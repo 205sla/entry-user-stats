@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { extractEntryId } from "@/lib/extract-id"
 import type { NicknameEntry } from "@/lib/nickname-index"
+import { toSearchable, searchNicknames } from "@/lib/nickname-search"
 import { formatDays } from "@/lib/aggregate"
 
 interface Props {
@@ -24,38 +25,6 @@ function looksLikeUrlOrId(input: string): boolean {
   return /^[a-f0-9]{24}$/i.test(trimmed)
 }
 
-/**
- * 대소문자 무시 + 정확→startsWith→includes 순 우선순위로 필터링.
- * 각 그룹 내에서는 작품 수 내림차순으로 정렬.
- */
-function filterByQuery(
-  index: NicknameEntry[],
-  query: string,
-): NicknameEntry[] {
-  const q = query.trim().toLowerCase()
-  if (!q) return []
-
-  const exact: NicknameEntry[] = []
-  const starts: NicknameEntry[] = []
-  const contains: NicknameEntry[] = []
-
-  for (const entry of index) {
-    const n = entry.nickname.toLowerCase()
-    if (n === q) exact.push(entry)
-    else if (n.startsWith(q)) starts.push(entry)
-    else if (n.includes(q)) contains.push(entry)
-  }
-
-  const sortFn = (a: NicknameEntry, b: NicknameEntry) =>
-    b.totalProjects - a.totalProjects
-
-  exact.sort(sortFn)
-  starts.sort(sortFn)
-  contains.sort(sortFn)
-
-  return [...exact, ...starts, ...contains].slice(0, MAX_SUGGESTIONS)
-}
-
 export default function UrlForm({ nicknameIndex }: Props) {
   const router = useRouter()
   const [value, setValue] = useState("")
@@ -64,10 +33,13 @@ export default function UrlForm({ nicknameIndex }: Props) {
   const [highlighted, setHighlighted] = useState(0)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // 초성/자모 매칭을 위해 닉네임별 초성·자모를 1회만 미리 계산
+  const searchable = useMemo(() => toSearchable(nicknameIndex), [nicknameIndex])
+
   const suggestions = useMemo(() => {
     if (looksLikeUrlOrId(value)) return []
-    return filterByQuery(nicknameIndex, value)
-  }, [nicknameIndex, value])
+    return searchNicknames(searchable, value, MAX_SUGGESTIONS)
+  }, [searchable, value])
 
   // 외부 클릭으로 드롭다운 닫기
   useEffect(() => {

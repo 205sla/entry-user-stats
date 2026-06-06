@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "es-hangul": "^2.3.8",
     "firebase-admin": "^13.7.0",
     "next": "^15.0.3",
     "react": "^19.0.0",
