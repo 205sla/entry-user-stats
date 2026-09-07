@@ -8,12 +8,15 @@
  *  3. 토큰+쿠키는 프로세스 메모리에 일정 시간 캐시해 재사용한다.
  *
  * 검증된 쿼리:
- *  - FIND_USERSTATUS_BY_USERNAME(id: ObjectId) → 닉네임/총 작품 수
+ *  - FIND_USERSTATUS_BY_USERNAME(id: ObjectId) → 닉네임/프로필 사진/배경 사진/총 작품 수
  *  - SELECT_USER_PROJECTS(user, pageParam.start offset) → 전체 작품 리스트
  */
 
+import type { EntryPicture } from "./entry-media"
+
 const ENTRY_ORIGIN = "https://playentry.org"
 const CSRF_TTL_MS = 10 * 60 * 1000 // 10분
+const FETCH_TIMEOUT_MS = 4_500
 
 export interface EntryProject {
   id: string
@@ -43,6 +46,8 @@ export interface EntryUserStatus {
   username: string
   role: string
   created: string
+  profileImage: EntryPicture | null
+  coverImage: EntryPicture | null
   status: {
     project: number
     projectAll: number
@@ -58,12 +63,9 @@ interface CsrfSession {
 }
 
 let cached: CsrfSession | null = null
+let csrfRequest: Promise<CsrfSession> | null = null
 
-async function acquireCsrf(): Promise<CsrfSession> {
-  if (cached && Date.now() - cached.acquiredAt < CSRF_TTL_MS) {
-    return cached
-  }
-
+async function requestCsrf(): Promise<CsrfSession> {
   const res = await fetch(ENTRY_ORIGIN + "/", {
     headers: {
       "User-Agent":
@@ -72,6 +74,7 @@ async function acquireCsrf(): Promise<CsrfSession> {
       "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8",
     },
     cache: "no-store",
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   })
 
   if (!res.ok) {
@@ -98,6 +101,20 @@ async function acquireCsrf(): Promise<CsrfSession> {
   return cached
 }
 
+async function acquireCsrf(): Promise<CsrfSession> {
+  if (cached && Date.now() - cached.acquiredAt < CSRF_TTL_MS) {
+    return cached
+  }
+  if (csrfRequest) return csrfRequest
+
+  csrfRequest = requestCsrf()
+  try {
+    return await csrfRequest
+  } finally {
+    csrfRequest = null
+  }
+}
+
 /** 세션 정보로 단일 GraphQL fetch 를 수행하고 파싱된 data 를 반환한다. */
 async function graphqlFetch<T>(
   operationName: string,
@@ -119,6 +136,7 @@ async function graphqlFetch<T>(
     },
     body,
     cache: "no-store",
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   })
 
   if (!res.ok) {
@@ -165,6 +183,14 @@ const USERSTATUS_QUERY = /* GraphQL */ `
       username
       role
       created
+      profileImage {
+        filename
+        imageType
+      }
+      coverImage {
+        filename
+        imageType
+      }
       status {
         project
         projectAll
@@ -227,6 +253,30 @@ interface UserProjectsPage {
   }
 }
 
+async function fetchUserProjectsPage(
+  userId: string,
+  start: number,
+  display: number,
+  sort: "created" | "updated" = "created",
+): Promise<UserProjectsPage["userProjectList"]> {
+  const data = await graphql<UserProjectsPage>(
+    "SELECT_USER_PROJECTS",
+    USER_PROJECTS_QUERY,
+    {
+      user: userId,
+      pageParam: {
+        display,
+        sort,
+        start,
+        order: "desc",
+      },
+      isOpen: "all",
+      term: "all",
+    },
+  )
+  return data.userProjectList
+}
+
 /**
  * 한 유저의 작품 목록을 offset 페이지네이션으로 가져온다.
  * - 50개씩 페이지로 요청
@@ -238,54 +288,50 @@ interface UserProjectsPage {
  */
 export async function fetchAllUserProjects(
   userId: string,
-  opts: { display?: number; maxCalls?: number } = {},
+  opts: {
+    display?: number
+    maxCalls?: number
+    stopWhenTotalExceeds?: number
+  } = {},
 ): Promise<{ total: number; projects: EntryProject[] }> {
-  const display = opts.display ?? 50
-  const maxCalls = opts.maxCalls ?? 6
+  const display = Math.min(100, Math.max(1, Math.floor(opts.display ?? 50)))
+  const maxCalls = Math.min(20, Math.max(1, Math.floor(opts.maxCalls ?? 6)))
 
   const all: EntryProject[] = []
   const seen = new Set<string>()
-  let total = 0
-  let start = 0
-  let calls = 0
+  const firstPage = await fetchUserProjectsPage(userId, 0, display)
+  const total = firstPage.total
 
-  while (calls < maxCalls) {
-    const data = await graphql<UserProjectsPage>(
-      "SELECT_USER_PROJECTS",
-      USER_PROJECTS_QUERY,
-      {
-        user: userId,
-        pageParam: {
-          display,
-          sort: "created",
-          start,
-          order: "desc",
-        },
-        isOpen: "all",
-        term: "all",
-      },
-    )
-    calls++
-
-    const page = data.userProjectList
-    total = page.total
-    const list = page.list ?? []
-    if (list.length === 0) break
-
-    let newCount = 0
+  function append(list: EntryProject[]) {
     for (const p of list) {
       if (!seen.has(p.id)) {
         seen.add(p.id)
         all.push(p)
-        newCount++
       }
     }
+  }
 
-    // 전진하지 못하면 (중복만 옴) 종료
-    if (newCount === 0) break
+  append(firstPage.list ?? [])
 
-    start += list.length
-    if (all.length >= total) break
+  // 상세 집계를 표시하지 않는 대형 계정은 첫 페이지에서 즉시 중단한다.
+  if (
+    opts.stopWhenTotalExceeds !== undefined &&
+    total > opts.stopWhenTotalExceeds
+  ) {
+    return { total, projects: all }
+  }
+
+  const pageCount = Math.min(maxCalls, Math.ceil(total / display))
+  if (pageCount <= 1) return { total, projects: all }
+
+  // 서로 독립적인 나머지 offset 페이지를 병렬 요청해 서버리스 실행 시간을 줄인다.
+  const remainingPages = await Promise.all(
+    Array.from({ length: pageCount - 1 }, (_, index) =>
+      fetchUserProjectsPage(userId, (index + 1) * display, display),
+    ),
+  )
+  for (const page of remainingPages) {
+    append(page.list ?? [])
   }
 
   return { total, projects: all }
@@ -298,20 +344,6 @@ export async function fetchAllUserProjects(
 export async function fetchLatestUpdatedProject(
   userId: string,
 ): Promise<EntryProject | null> {
-  const data = await graphql<UserProjectsPage>(
-    "SELECT_USER_PROJECTS",
-    USER_PROJECTS_QUERY,
-    {
-      user: userId,
-      pageParam: {
-        display: 1,
-        sort: "updated",
-        start: 0,
-        order: "desc",
-      },
-      isOpen: "all",
-      term: "all",
-    },
-  )
-  return data.userProjectList.list?.[0] ?? null
+  const page = await fetchUserProjectsPage(userId, 0, 1, "updated")
+  return page.list?.[0] ?? null
 }

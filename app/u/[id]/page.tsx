@@ -2,7 +2,6 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { headers } from "next/headers"
 import { isValidEntryId } from "@/lib/extract-id"
-import { fetchUserStatus } from "@/lib/entry-api"
 import { getStatsForUser } from "@/lib/stats-service"
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
 import {
@@ -20,19 +19,10 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps) {
   const { id } = await params
   if (!isValidEntryId(id)) return { title: "잘못된 ID", robots: { index: false } }
-  try {
-    const user = await fetchUserStatus(id)
-    if (!user) return { title: "유저 없음", robots: { index: false } }
-    const title = `${user.nickname}님의 통계`
-    const description = `${user.nickname}님의 엔트리 작품 통계`
-    return {
-      title,
-      description,
-      openGraph: { title: `${title} — 유저 찾기.엔트리.org`, description },
-      robots: { index: false, follow: true },
-    }
-  } catch {
-    return { title: "유저 찾기.엔트리.org" }
+  return {
+    title: "엔트리 유저 통계",
+    description: "엔트리 유저의 공개 작품 통계를 보여줍니다.",
+    robots: { index: false, follow: true },
   }
 }
 
@@ -77,7 +67,7 @@ export default async function UserStatsPage({ params }: PageProps) {
   )
 
   return (
-    <main className="min-h-screen px-6 py-12">
+    <main className="min-h-screen px-4 py-12 sm:px-6">
       <div className="mx-auto max-w-6xl">
         <nav className="mb-6">
           <Link

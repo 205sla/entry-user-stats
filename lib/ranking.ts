@@ -9,7 +9,8 @@
  *   랭킹은 truncated 유저도 포함, 나머지 7개 부문은 제외한다.
  */
 
-import { Timestamp, FieldValue } from "firebase-admin/firestore"
+import { Timestamp, FieldValue } from "@google-cloud/firestore"
+import { revalidateTag, unstable_cache } from "next/cache"
 import { getDb } from "@/lib/firebase"
 import { upsertNicknameIndexEntry } from "@/lib/nickname-index"
 import type { AggregatedStats } from "@/lib/aggregate"
@@ -31,6 +32,7 @@ export {
 
 const COLLECTION = "ent2_users"
 const MIN_REFRESH_MS = 60 * 60 * 1000 // 1시간
+const RANKING_CACHE_TAG = "rankings"
 
 /** RankingType → Firestore 필드명 */
 const FIELD_MAP: Record<RankingType, string> = {
@@ -93,6 +95,7 @@ export async function recordRanking(stats: AggregatedStats): Promise<void> {
     }
 
     await ref.set(payload, { merge: true })
+    revalidateTag(RANKING_CACHE_TAG)
 
     // 닉네임 자동완성 인덱스에도 경량 엔트리 반영 (검색 즉시 노출)
     await upsertNicknameIndexEntry({
@@ -111,7 +114,7 @@ export async function recordRanking(stats: AggregatedStats): Promise<void> {
  * - 옵션 B: 활동 기간 랭킹은 truncated 유저 포함 (가입일 기반이라 정확)
  * - 나머지 7개 부문은 부분 집계라 제외 (`where truncated == false`)
  */
-export async function getRanking(
+async function queryRanking(
   type: RankingType,
   limit = 20,
 ): Promise<RankingEntry[]> {
@@ -141,8 +144,25 @@ export async function getRanking(
       popularCount: (data.popularCount as number) ?? 0,
       staffCount: (data.staffCount as number) ?? 0,
       truncated: (data.truncated as boolean) ?? false,
+      lastRecorded:
+        data.lastRecorded instanceof Timestamp
+          ? data.lastRecorded.toDate().toISOString()
+          : undefined,
     }
   })
+}
+
+const queryCachedRanking = unstable_cache(queryRanking, ["ranking-list-v2"], {
+  revalidate: 60,
+  tags: [RANKING_CACHE_TAG],
+})
+
+/** 서버 인스턴스가 달라도 공유되는 60초 Data Cache를 사용한다. */
+export async function getRanking(
+  type: RankingType,
+  limit = 20,
+): Promise<RankingEntry[]> {
+  return queryCachedRanking(type, limit)
 }
 
 // ---------------------------------------------------------------------------

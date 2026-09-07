@@ -45,7 +45,10 @@ export async function GET(request: Request) {
       { headers: { "Cache-Control": "public, max-age=0, s-maxage=1800" } },
     )
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    return NextResponse.json({ error: msg }, { status: 502 })
+    console.error("[stats-api] 조회 실패:", err)
+    return NextResponse.json(
+      { error: "upstream service is temporarily unavailable" },
+      { status: 502 },
+    )
   }
 }

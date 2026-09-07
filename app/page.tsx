@@ -1,18 +1,17 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import UrlForm from "@/components/UrlForm"
-import { getNicknameIndex } from "@/lib/nickname-index"
 
-// ISR: 5분마다 재검증 (nickname index 캐시와 일치)
-export const revalidate = 300
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+}
 
-export default async function HomePage() {
-  const nicknameIndex = await getNicknameIndex()
-
+export default function HomePage() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+    <main className="flex min-h-screen flex-col items-center justify-center px-4 py-16 sm:px-6">
       <div className="w-full max-w-2xl">
         <header className="mb-10 text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-slate-900">
+          <h1 className="whitespace-nowrap text-[clamp(1.5rem,7.5vw,2.25rem)] font-bold tracking-tight text-slate-900">
             유저 찾기<span className="text-slate-400">.</span>엔트리<span className="text-slate-400">.</span>org
           </h1>
           <p className="mt-3 text-slate-600">
@@ -20,7 +19,7 @@ export default async function HomePage() {
           </p>
         </header>
 
-        <UrlForm nicknameIndex={nicknameIndex} />
+        <UrlForm />
 
         <div className="mt-6 text-center">
           <Link
@@ -34,7 +33,7 @@ export default async function HomePage() {
         <section className="mt-12 space-y-3 text-sm text-slate-500">
           <p>
             예시:{" "}
-            <code className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-700">
+            <code className="break-all rounded bg-slate-100 px-1.5 py-0.5 text-slate-700">
               https://playentry.org/profile/56136825dadc91e1235b460d
             </code>
           </p>

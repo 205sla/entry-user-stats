@@ -16,11 +16,12 @@
  *  - 최초 1회(샤드 부재 시)만 `ent2_users` 를 스캔해 백필한다(`rebuildIndex`).
  *
  * 샤드를 나누는 이유: Firestore 단일 문서 1 MiB 제한 회피. 8 샤드 × ~수천 키로
- * 수만 유저까지 여유. 검색 필터링은 클라이언트(`UrlForm`)에서 수행한다.
+ * 수만 유저까지 여유. 검색 필터링은 서버 검색 API에서 수행해 전체 목록을
+ * 브라우저로 보내지 않는다.
  */
 
 import { getDb } from "@/lib/firebase"
-import type { Firestore } from "firebase-admin/firestore"
+import type { Firestore } from "@google-cloud/firestore"
 
 export interface NicknameEntry {
   id: string

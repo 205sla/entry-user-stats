@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import {
   MAX_PROJECTS,
@@ -13,6 +14,9 @@ import FlagsPieChart from "./FlagsPieChart"
 import CategoryChart from "./CategoryChart"
 import TopProjectsChart, { type TopMode } from "./TopProjectsChart"
 import YearBarChart from "./YearBarChart"
+import ShareButton from "./ShareButton"
+import { profileShareUrl } from "@/lib/share-url"
+import { rankingPageHref } from "@/lib/ranking-navigation"
 
 interface Props {
   stats: AggregatedStats
@@ -68,30 +72,82 @@ function UserHeader({
   user: AggregatedStats["user"]
   latestActivity: LatestActivity | null
 }) {
+  const initial = Array.from(user.nickname.trim())[0] ?? "?"
+
   return (
-    <header className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-slate-900">{user.nickname}</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {user.role === "member" ? "일반 회원" : user.role}
-            {user.created && (
-              <> · 가입일 {new Date(user.created).toLocaleDateString("ko-KR")}</>
-            )}
-          </p>
-          {latestActivity && <LatestActivityLine latest={latestActivity} />}
+    <header className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
+      <div className="relative h-28 bg-gradient-to-br from-sky-500 via-cyan-500 to-indigo-600 sm:h-36">
+        {user.coverImage && (
+          <Image
+            src={user.coverImage}
+            alt=""
+            fill
+            sizes="(max-width: 1152px) 100vw, 1152px"
+            className="object-cover"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-white/10" />
+      </div>
+
+      <div className="relative px-5 pb-5 sm:px-6 sm:pb-6">
+        <div className="-mt-10 flex flex-wrap items-end justify-between gap-4">
+          <div className="flex min-w-0 items-end gap-4">
+            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full bg-white shadow-md ring-4 ring-white">
+              {user.profileImage ? (
+                <Image
+                  src={user.profileImage}
+                  alt={`${user.nickname} 프로필 사진`}
+                  fill
+                  sizes="80px"
+                  className="object-cover"
+                />
+              ) : (
+                <div
+                  aria-hidden="true"
+                  className="flex h-full w-full items-center justify-center bg-gradient-to-br from-sky-100 to-indigo-100 text-2xl font-bold text-sky-700"
+                >
+                  {initial}
+                </div>
+              )}
+            </div>
+
+            <div className="min-w-0 rounded-xl bg-white/95 px-3 py-2 shadow-sm ring-1 ring-white/80 backdrop-blur-sm">
+              <h1 className="break-words text-2xl font-bold text-slate-900">
+                {user.nickname}
+              </h1>
+              <p className="mt-1 text-sm text-slate-500">
+                {user.role === "member" ? "일반 회원" : user.role}
+                {user.created && (
+                  <>
+                    {" "}· 가입일{" "}
+                    {new Date(user.created).toLocaleDateString("ko-KR")}
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 pb-1">
+            <div className="text-sm text-slate-500">
+              팔로워{" "}
+              <strong className="text-slate-800">
+                {user.followers.toLocaleString()}
+              </strong>
+              <span className="mx-2">·</span>
+              팔로잉{" "}
+              <strong className="text-slate-800">
+                {user.following.toLocaleString()}
+              </strong>
+            </div>
+            <ShareButton
+              url={profileShareUrl(user.nickname)}
+              title={`${user.nickname} 엔트리 통계`}
+              label="링크 복사"
+            />
+          </div>
         </div>
-        <div className="text-sm text-slate-500">
-          팔로워{" "}
-          <strong className="text-slate-800">
-            {user.followers.toLocaleString()}
-          </strong>
-          <span className="mx-2">·</span>
-          팔로잉{" "}
-          <strong className="text-slate-800">
-            {user.following.toLocaleString()}
-          </strong>
-        </div>
+
+        {latestActivity && <LatestActivityLine latest={latestActivity} />}
       </div>
     </header>
   )
@@ -104,7 +160,13 @@ const RANK_COLORS: Record<number, string> = {
 }
 const RANK_DEFAULT = "bg-slate-100 text-slate-600 ring-slate-200"
 
-function RankingBadges({ positions }: { positions: UserRankPositions }) {
+function RankingBadges({
+  positions,
+  userId,
+}: {
+  positions: UserRankPositions
+  userId: string
+}) {
   const entries = Object.entries(positions) as [RankingType, number][]
   if (entries.length === 0) return null
 
@@ -116,7 +178,7 @@ function RankingBadges({ positions }: { positions: UserRankPositions }) {
       {entries.map(([type, rank]) => (
         <Link
           key={type}
-          href={`/ranking?type=${type}`}
+          href={rankingPageHref(type, userId)}
           className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition hover:brightness-95 ${
             RANK_COLORS[rank] ?? RANK_DEFAULT
           }`}
@@ -138,7 +200,7 @@ export default function StatsView({ stats, rankPositions = {} }: Props) {
     return (
       <div className="space-y-8">
         <UserHeader user={user} latestActivity={stats.latestActivity} />
-        <RankingBadges positions={rankPositions} />
+        <RankingBadges positions={rankPositions} userId={user.id} />
 
         {/* 여러 호출 없이 표시 가능한 정보 (userstatus + 1회 타겟 호출로 전부 얻음) */}
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -183,7 +245,7 @@ export default function StatsView({ stats, rankPositions = {} }: Props) {
   return (
     <div className="space-y-8">
       <UserHeader user={user} latestActivity={stats.latestActivity} />
-      <RankingBadges positions={rankPositions} />
+      <RankingBadges positions={rankPositions} userId={user.id} />
 
       <StatCards totals={totals} />
 

@@ -1,4 +1,5 @@
 import type { EntryProject, EntryUserStatus } from "./entry-api"
+import { entryPictureUrl } from "./entry-media"
 
 /**
  * 정확한 통계를 표시할 수 있는 최대 작품 수.
@@ -28,8 +29,15 @@ function labelForCategory(code: string | null): string {
 
 export function thumbUrl(thumb: string | null): string | null {
   if (!thumb) return null
-  if (thumb.startsWith("http")) return thumb
-  return "https://playentry.org" + thumb
+  try {
+    const url = new URL(thumb, "https://playentry.org/")
+    if (url.protocol !== "https:" || url.hostname !== "playentry.org") {
+      return null
+    }
+    return url.toString()
+  } catch {
+    return null
+  }
 }
 
 export function projectUrl(id: string): string {
@@ -82,6 +90,8 @@ export interface AggregatedStats {
     nickname: string
     role: string
     created: string
+    profileImage: string | null
+    coverImage: string | null
     followers: number
     following: number
   }
@@ -263,6 +273,8 @@ export function aggregate(
       nickname: user.nickname,
       role: user.role,
       created: user.created,
+      profileImage: entryPictureUrl(user.profileImage),
+      coverImage: entryPictureUrl(user.coverImage),
       followers: user.status?.follower ?? 0,
       following: user.status?.following ?? 0,
     },

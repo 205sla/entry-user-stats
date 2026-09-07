@@ -12,8 +12,8 @@ interface Bucket {
   resetAt: number
 }
 
-const WINDOW_MS = 60 * 1000 // 1분
-const MAX_REQUESTS = 3 // IP 당 분당 3회
+const DEFAULT_WINDOW_MS = 60 * 1000 // 1분
+const DEFAULT_MAX_REQUESTS = 3 // IP 당 분당 3회
 const MAX_BUCKETS = 5000 // 메모리 폭주 방지
 
 const buckets = new Map<string, Bucket>()
@@ -32,26 +32,50 @@ export interface RateLimitResult {
   retryAfterSec: number
 }
 
-export function checkRateLimit(key: string): RateLimitResult {
-  const now = Date.now()
+export interface RateLimitOptions {
+  windowMs?: number
+  maxRequests?: number
+}
 
-  if (buckets.size > MAX_BUCKETS) {
+export function checkRateLimit(
+  key: string,
+  options: RateLimitOptions = {},
+): RateLimitResult {
+  const now = Date.now()
+  const windowMs = Math.max(1_000, Math.floor(options.windowMs ?? DEFAULT_WINDOW_MS))
+  const maxRequests = Math.max(
+    1,
+    Math.floor(options.maxRequests ?? DEFAULT_MAX_REQUESTS),
+  )
+
+  if (buckets.size >= MAX_BUCKETS && !buckets.has(key)) {
     cleanupExpired(now)
+    if (buckets.size >= MAX_BUCKETS) {
+      let oldestKey: string | null = null
+      let oldestReset = Infinity
+      for (const [candidateKey, candidate] of buckets) {
+        if (candidate.resetAt < oldestReset) {
+          oldestKey = candidateKey
+          oldestReset = candidate.resetAt
+        }
+      }
+      if (oldestKey) buckets.delete(oldestKey)
+    }
   }
 
   let bucket = buckets.get(key)
   if (!bucket || now >= bucket.resetAt) {
-    bucket = { count: 0, resetAt: now + WINDOW_MS }
+    bucket = { count: 0, resetAt: now + windowMs }
     buckets.set(key, bucket)
   }
 
   bucket.count++
 
-  const allowed = bucket.count <= MAX_REQUESTS
+  const allowed = bucket.count <= maxRequests
   return {
     allowed,
-    limit: MAX_REQUESTS,
-    remaining: Math.max(0, MAX_REQUESTS - bucket.count),
+    limit: maxRequests,
+    remaining: Math.max(0, maxRequests - bucket.count),
     resetAt: bucket.resetAt,
     retryAfterSec: Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)),
   }

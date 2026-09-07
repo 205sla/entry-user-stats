@@ -1,28 +1,21 @@
 /**
- * Firebase Admin SDK 싱글톤.
+ * Google Cloud Firestore 서버 SDK 싱글톤.
  *
  * 환경변수:
  *  - FIREBASE_PROJECT_ID
  *  - FIREBASE_CLIENT_EMAIL
  *  - FIREBASE_PRIVATE_KEY  (PEM, \n 은 literal 백슬래시-n 으로 저장)
  *
- * 호출 시점에 lazy 초기화 — 빌드 타임에 env 가 없어도 import 자체는 안전.
+ * 앱에서 쓰지 않는 Auth/Storage까지 포함하는 Admin 묶음 대신 Firestore 전용 SDK를
+ * 사용한다. 호출 시점에 lazy 초기화하므로 빌드 타임에 env가 없어도 안전하다.
  */
 
-import { initializeApp, getApps, cert, type App } from "firebase-admin/app"
-import { getFirestore, type Firestore } from "firebase-admin/firestore"
+import { Firestore } from "@google-cloud/firestore"
 
-let cachedApp: App | null = null
 let cachedDb: Firestore | null = null
 
-function getApp(): App {
-  if (cachedApp) return cachedApp
-
-  const existing = getApps()
-  if (existing.length > 0) {
-    cachedApp = existing[0]!
-    return cachedApp
-  }
+export function getDb(): Firestore {
+  if (cachedDb) return cachedDb
 
   const projectId = process.env.FIREBASE_PROJECT_ID
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL
@@ -30,18 +23,16 @@ function getApp(): App {
 
   if (!projectId || !clientEmail || !privateKey) {
     throw new Error(
-      "Firebase Admin SDK 환경변수 누락: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY 모두 필요합니다.",
+      "Firestore 환경변수 누락: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY 모두 필요합니다.",
     )
   }
 
-  cachedApp = initializeApp({
-    credential: cert({ projectId, clientEmail, privateKey }),
+  cachedDb = new Firestore({
+    projectId,
+    credentials: {
+      client_email: clientEmail,
+      private_key: privateKey,
+    },
   })
-  return cachedApp
-}
-
-export function getDb(): Firestore {
-  if (cachedDb) return cachedDb
-  cachedDb = getFirestore(getApp())
   return cachedDb
 }

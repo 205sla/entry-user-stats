@@ -1,6 +1,12 @@
 import Link from "next/link"
 import { Suspense } from "react"
 import RankingTable from "@/components/RankingTable"
+import ShareButton from "@/components/ShareButton"
+import { rankingShareUrl } from "@/lib/share-url"
+import {
+  normalizeFocusedUserId,
+  rankingPageHref,
+} from "@/lib/ranking-navigation"
 import {
   getRanking,
   RANKING_TYPES,
@@ -39,15 +45,16 @@ function isRankingType(v: string | undefined): v is RankingType {
 }
 
 interface PageProps {
-  searchParams: Promise<{ type?: string }>
+  searchParams: Promise<{ type?: string; user?: string }>
 }
 
 export default async function RankingPage({ searchParams }: PageProps) {
   const params = await searchParams
   const type: RankingType = isRankingType(params.type) ? params.type : "views"
+  const focusedUserId = normalizeFocusedUserId(params.user)
 
   return (
-    <main className="min-h-screen px-6 py-12">
+    <main className="min-h-screen px-4 py-12 sm:px-6">
       <div className="mx-auto max-w-3xl">
         <nav className="mb-6">
           <Link
@@ -58,23 +65,30 @@ export default async function RankingPage({ searchParams }: PageProps) {
           </Link>
         </nav>
 
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            랭킹
-          </h1>
-          <p className="mt-3 text-slate-600">
-            검색된 유저 중 부문별 상위 사용자를 보여줍니다.
-          </p>
+        <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+              랭킹
+            </h1>
+            <p className="mt-3 text-slate-600">
+              검색된 유저 중 부문별 상위 사용자를 보여줍니다.
+            </p>
+          </div>
+          <ShareButton
+            url={rankingShareUrl(type)}
+            title={`${RANKING_LABELS[type]} 랭킹 — 유저 찾기.엔트리.org`}
+            label="랭킹 링크 복사"
+          />
         </header>
 
-        <div className="-mx-6 mb-6 overflow-x-auto px-6">
+        <div className="scrollbar-none -mx-4 mb-6 overflow-x-auto px-4 sm:-mx-6 sm:px-6">
           <div className="flex gap-2 whitespace-nowrap">
             {RANKING_TYPES.map((t) => {
               const active = t === type
               return (
                 <Link
                   key={t}
-                  href={t === "views" ? "/ranking" : `/ranking?type=${t}`}
+                  href={rankingPageHref(t, focusedUserId)}
                   className={
                     active
                       ? "rounded-full bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm"
@@ -93,7 +107,7 @@ export default async function RankingPage({ searchParams }: PageProps) {
         </div>
 
         <Suspense fallback={<RankingSkeleton />}>
-          <RankingContent type={type} />
+          <RankingContent type={type} focusedUserId={focusedUserId} />
         </Suspense>
 
         <section className="mt-10 rounded-xl border border-slate-200 bg-slate-50 p-5">
@@ -115,7 +129,13 @@ export default async function RankingPage({ searchParams }: PageProps) {
   )
 }
 
-async function RankingContent({ type }: { type: RankingType }) {
+async function RankingContent({
+  type,
+  focusedUserId,
+}: {
+  type: RankingType
+  focusedUserId?: string
+}) {
   let entries
   try {
     entries = await getRanking(type, 100)
@@ -123,7 +143,13 @@ async function RankingContent({ type }: { type: RankingType }) {
     console.error("[ranking] 조회 실패:", err)
     return <RankingError />
   }
-  return <RankingTable type={type} entries={entries} />
+  return (
+    <RankingTable
+      type={type}
+      entries={entries}
+      focusedUserId={focusedUserId}
+    />
+  )
 }
 
 /**

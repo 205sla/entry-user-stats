@@ -1,8 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { formatDays } from "@/lib/aggregate"
+import {
+  focusedRankingVisibleCount,
+  RANKING_PAGE_SIZE,
+} from "@/lib/ranking-navigation"
 import {
   RANKING_LABELS,
   type RankingEntry,
@@ -12,10 +16,10 @@ import {
 interface Props {
   type: RankingType
   entries: RankingEntry[]
+  focusedUserId?: string
 }
 
-const INITIAL_COUNT = 20
-const STEP = 20
+const STEP = RANKING_PAGE_SIZE
 
 const fmt = (n: number) => n.toLocaleString("ko-KR")
 
@@ -40,6 +44,27 @@ function valueFor(type: RankingType, e: RankingEntry): string {
   }
 }
 
+function numericValueFor(type: RankingType, entry: RankingEntry): number {
+  switch (type) {
+    case "views":
+      return entry.totalViews
+    case "likes":
+      return entry.totalLikes
+    case "comments":
+      return entry.totalComments
+    case "clones":
+      return entry.totalClones
+    case "blocks":
+      return entry.totalBlocks
+    case "activity":
+      return entry.activityDays
+    case "popular":
+      return entry.popularCount
+    case "staff":
+      return entry.staffCount
+  }
+}
+
 const rankBadgeClass = (rank: number): string => {
   if (rank === 1) return "bg-amber-100 text-amber-800 ring-amber-200"
   if (rank === 2) return "bg-slate-200 text-slate-700 ring-slate-300"
@@ -47,13 +72,39 @@ const rankBadgeClass = (rank: number): string => {
   return "bg-slate-50 text-slate-500 ring-slate-200"
 }
 
-export default function RankingTable({ type, entries }: Props) {
-  const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT)
+export default function RankingTable({
+  type,
+  entries,
+  focusedUserId,
+}: Props) {
+  const requiredVisibleCount = focusedRankingVisibleCount(entries, focusedUserId)
+  const focusedIndex = focusedUserId
+    ? entries.findIndex((entry) => entry.id === focusedUserId)
+    : -1
+  const focusedRowRef = useRef<HTMLTableRowElement>(null)
+  const [visibleCount, setVisibleCount] = useState(requiredVisibleCount)
 
-  // 부문(탭) 전환 시 초기 20개로 리셋
+  // 부문 전환 시 기본 20개로 리셋하되, 대상 유저가 있으면 해당 행까지 펼친다.
   useEffect(() => {
-    setVisibleCount(INITIAL_COUNT)
-  }, [type])
+    setVisibleCount(requiredVisibleCount)
+  }, [type, focusedUserId, requiredVisibleCount])
+
+  // Suspense로 랭킹 목록이 그려진 뒤 대상 행을 화면 중앙으로 이동한다.
+  useEffect(() => {
+    if (focusedIndex < 0 || focusedIndex >= visibleCount) return
+
+    const frame = window.requestAnimationFrame(() => {
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches
+      focusedRowRef.current?.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "center",
+      })
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [focusedIndex, focusedUserId, type, visibleCount])
 
   if (entries.length === 0) {
     return (
@@ -65,7 +116,16 @@ export default function RankingTable({ type, entries }: Props) {
     )
   }
 
-  const visible = entries.slice(0, visibleCount)
+  let previousValue: number | null = null
+  let previousRank = 0
+  const rankedEntries = entries.map((entry, index) => {
+    const value = numericValueFor(type, entry)
+    const rank = previousValue === value ? previousRank : index + 1
+    previousValue = value
+    previousRank = rank
+    return { entry, rank }
+  })
+  const visible = rankedEntries.slice(0, visibleCount)
   const canShowMore = visibleCount < entries.length
   const nextIncrement = Math.min(STEP, entries.length - visibleCount)
 
@@ -81,10 +141,20 @@ export default function RankingTable({ type, entries }: Props) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {visible.map((e, i) => {
-              const rank = i + 1
+            {visible.map(({ entry: e, rank }) => {
+              const focused = e.id === focusedUserId
               return (
-                <tr key={e.id} className="transition hover:bg-slate-50">
+                <tr
+                  key={e.id}
+                  id={`ranking-user-${e.id}`}
+                  ref={focused ? focusedRowRef : undefined}
+                  aria-current={focused ? "true" : undefined}
+                  className={`scroll-mt-6 transition-colors ${
+                    focused
+                      ? "bg-sky-50 ring-2 ring-inset ring-sky-300"
+                      : "hover:bg-slate-50"
+                  }`}
+                >
                   <td className="px-4 py-3">
                     <span
                       className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ring-1 ${rankBadgeClass(
@@ -101,9 +171,14 @@ export default function RankingTable({ type, entries }: Props) {
                     >
                       {e.nickname}
                     </Link>
+                    {focused && (
+                      <span className="ml-2 inline-block rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700">
+                        선택한 유저
+                      </span>
+                    )}
                     {e.truncated && type === "activity" && (
                       <span className="ml-2 inline-block rounded bg-emerald-50 px-1.5 py-0.5 text-xs text-emerald-700 ring-1 ring-emerald-200">
-                        200+
+                        작품 {fmt(e.totalProjects)}개
                       </span>
                     )}
                   </td>

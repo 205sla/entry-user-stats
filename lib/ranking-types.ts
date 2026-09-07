@@ -1,6 +1,6 @@
 /**
  * 랭킹 관련 타입과 상수.
- * firebase-admin 의존 없이 클라이언트/서버 양쪽에서 안전하게 import 가능.
+ * Firestore 서버 SDK 의존 없이 클라이언트/서버 양쪽에서 안전하게 import 가능.
  */
 
 export type RankingType =
@@ -49,6 +49,7 @@ export interface RankingEntry {
   popularCount: number
   staffCount: number
   truncated: boolean
+  lastRecorded?: string
 }
 
 export type UserRankPositions = Partial<Record<RankingType, number>>

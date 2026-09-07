@@ -1,13 +1,13 @@
 import type { Metadata } from "next"
 import "./globals.css"
 import ToolsFamilyLink from "@/components/ToolsFamilyLink"
+import { SITE_ORIGIN } from "@/lib/share-url"
 
-const SITE_URL = "https://xn--ok0bx68bhtav5k.xn--oy2b95t44j.org"
 const SITE_NAME = "유저 찾기.엔트리.org"
 const DESCRIPTION = "엔트리 프로필 링크를 붙여넣으면 작품 통계를 보여줍니다."
 
 export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
+  metadataBase: new URL(SITE_ORIGIN),
   title: {
     default: `${SITE_NAME} — 엔트리 유저 통계`,
     template: `%s — ${SITE_NAME}`,
@@ -19,15 +19,12 @@ export const metadata: Metadata = {
     title: `${SITE_NAME} — 엔트리 유저 통계`,
     description: DESCRIPTION,
     locale: "ko_KR",
-    url: SITE_URL,
+    url: SITE_ORIGIN,
   },
   twitter: {
     card: "summary",
     title: `${SITE_NAME} — 엔트리 유저 통계`,
     description: DESCRIPTION,
-  },
-  alternates: {
-    canonical: "/",
   },
   robots: {
     index: true,
@@ -39,11 +36,11 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   name: SITE_NAME,
-  url: SITE_URL,
+  url: SITE_ORIGIN,
   description: DESCRIPTION,
   potentialAction: {
     "@type": "SearchAction",
-    target: `${SITE_URL}/u/{search_term_string}`,
+    target: `${SITE_ORIGIN}/l/{search_term_string}`,
     "query-input": "required name=search_term_string",
   },
 }

@@ -12,3 +12,11 @@ html, body {
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
 }
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
