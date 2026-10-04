@@ -3,6 +3,8 @@ import { Suspense } from "react"
 import RankingTable from "@/components/RankingTable"
 import ShareButton from "@/components/ShareButton"
 import { rankingShareUrl } from "@/lib/share-url"
+import { publicPageMetadata, SITE_NAME } from "@/lib/site-metadata"
+import { isProfileRanking, parseRankingType, RANKING_DESCRIPTIONS } from "@/lib/ranking-types"
 import {
   normalizeFocusedUserId,
   rankingPageHref,
@@ -14,44 +16,28 @@ import {
   type RankingType,
 } from "@/lib/ranking"
 
-export const metadata = {
-  title: "랭킹",
-  description: "검색된 엔트리 유저 중 부문별 상위 사용자를 보여줍니다.",
-  openGraph: {
-    title: "랭킹 — 유저 찾기.엔트리.org",
-    description: "검색된 엔트리 유저 중 부문별 상위 사용자를 보여줍니다.",
-  },
-  alternates: {
-    canonical: "/ranking",
-  },
-}
-
 // ISR: 60초마다 재검증 (Firestore read 절약)
 export const revalidate = 60
 
-const TAB_DESCRIPTIONS: Record<RankingType, string> = {
-  views: "작품 조회수의 합이 가장 많은 유저",
-  likes: "작품 좋아요의 합이 가장 많은 유저",
-  comments: "작품 댓글의 합이 가장 많은 유저",
-  clones: "작품 사본의 합이 가장 많은 유저",
-  blocks: "작품에서 사용한 블록 수의 합이 가장 많은 유저",
-  activity: "엔트리 가입 후 가장 오래 활동한 유저",
-  popular: "인기 작품으로 선정된 작품이 가장 많은 유저",
-  staff: "스태프 선정 작품이 가장 많은 유저",
-}
-
-function isRankingType(v: string | undefined): v is RankingType {
-  return !!v && (RANKING_TYPES as string[]).includes(v)
-}
-
 interface PageProps {
-  searchParams: Promise<{ type?: string; user?: string }>
+  searchParams: Promise<{ type?: string | string[]; user?: string | string[] }>
+}
+
+export async function generateMetadata({ searchParams }: PageProps) {
+  const type = parseRankingType((await searchParams).type)
+  return publicPageMetadata(
+    `엔트리 ${RANKING_LABELS[type]} 랭킹 | ${SITE_NAME}`,
+    `${RANKING_DESCRIPTIONS[type]}를 확인하세요. 유저찾기에서 검색된 유저의 ${RANKING_LABELS[type]} 상위 100명을 보여주며, 검색할 때 정보가 자동으로 등록·갱신됩니다.`,
+    rankingPageHref(type),
+  )
 }
 
 export default async function RankingPage({ searchParams }: PageProps) {
   const params = await searchParams
-  const type: RankingType = isRankingType(params.type) ? params.type : "views"
-  const focusedUserId = normalizeFocusedUserId(params.user)
+  const type = parseRankingType(params.type)
+  const focusedUserId = normalizeFocusedUserId(
+    typeof params.user === "string" ? params.user : undefined,
+  )
 
   return (
     <main className="min-h-screen px-4 py-12 sm:px-6">
@@ -68,7 +54,7 @@ export default async function RankingPage({ searchParams }: PageProps) {
         <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-              랭킹
+              엔트리 {RANKING_LABELS[type]} 랭킹
             </h1>
             <p className="mt-3 text-slate-600">
               검색된 유저 중 부문별 상위 사용자를 보여줍니다.
@@ -81,14 +67,15 @@ export default async function RankingPage({ searchParams }: PageProps) {
           />
         </header>
 
-        <div className="scrollbar-none -mx-4 mb-6 overflow-x-auto px-4 sm:-mx-6 sm:px-6">
-          <div className="flex gap-2 whitespace-nowrap">
+        <nav aria-label="랭킹 부문" className="mb-6">
+          <div className="flex flex-wrap gap-2">
             {RANKING_TYPES.map((t) => {
               const active = t === type
               return (
                 <Link
                   key={t}
                   href={rankingPageHref(t, focusedUserId)}
+                  aria-current={active ? "page" : undefined}
                   className={
                     active
                       ? "rounded-full bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm"
@@ -100,10 +87,10 @@ export default async function RankingPage({ searchParams }: PageProps) {
               )
             })}
           </div>
-        </div>
+        </nav>
 
         <div className="mb-4 text-sm text-slate-500">
-          {TAB_DESCRIPTIONS[type]}
+          {RANKING_DESCRIPTIONS[type]}
         </div>
 
         <Suspense fallback={<RankingSkeleton />}>
@@ -118,9 +105,16 @@ export default async function RankingPage({ searchParams }: PageProps) {
             누군가가 유저를 검색하면 해당 유저의 통계가 자동으로 랭킹에
             등록됩니다.
           </p>
-          {type !== "activity" && (
+          {(type === "followers" || type === "following") && (
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              아직 팔로워·팔로잉 정보가 없는 유저는 다음 검색 때부터 이 랭킹에
+              참여합니다. 작품 수에 관계없이, 검색 당시 확인한 인원수를 기준으로 합니다.
+            </p>
+          )}
+          {!isProfileRanking(type) && (
             <p className="mt-2 text-xs text-slate-500">
-              ※ 작품 300개 초과 유저는 부분 집계라 활동 기간 외 부문에서는 제외됩니다.
+              ※ 작품 300개 초과 유저는 작품 집계 부문에서 제외됩니다.
+              활동 기간·팔로워·팔로잉 랭킹에는 참여할 수 있습니다.
             </p>
           )}
         </section>

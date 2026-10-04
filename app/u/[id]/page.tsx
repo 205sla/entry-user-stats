@@ -60,9 +60,8 @@ export default async function UserStatsPage({ params }: PageProps) {
   const result = await getStatsForUser(id)
   if (!result) notFound()
 
-  // 랭킹 순위는 유저 통계 값이 필요해서 순차 호출
-  // (각 부문당 1 Firestore count read 로 저렴하므로 레이턴시 영향 미미)
-  const rankPositions = await getUserRankPositions(id, result.stats).catch(
+  // 배지는 목록에 등록된 값 기준. 최초 검색의 백그라운드 등록 전에는 표시하지 않는다.
+  const rankPositions = await getUserRankPositions(id).catch(
     (): UserRankPositions => ({}),
   )
 

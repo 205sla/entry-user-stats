@@ -131,12 +131,12 @@ function UserHeader({
             <div className="text-sm text-slate-500">
               팔로워{" "}
               <strong className="text-slate-800">
-                {user.followers.toLocaleString()}
+                {user.followers?.toLocaleString("ko-KR") ?? "미수집"}
               </strong>
               <span className="mx-2">·</span>
               팔로잉{" "}
               <strong className="text-slate-800">
-                {user.following.toLocaleString()}
+                {user.following?.toLocaleString("ko-KR") ?? "미수집"}
               </strong>
             </div>
             <ShareButton

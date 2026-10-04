@@ -11,8 +11,8 @@
  *  - 각 샤드 doc 은 `{ users: { [userId]: {nickname, totalProjects, activityDays} } }`.
  *  - 읽기: 메타 + 샤드 doc 을 `getAll` 로 한 번에 → 고정 `SHARD_COUNT + 1` reads
  *    (유저 수와 무관). 5분 in-memory 캐시로 warm 인스턴스는 0 read.
- *  - 쓰기: `recordRanking` 이 유저를 기록할 때 해당 샤드의 키 하나만 merge 업서트
- *    (`upsertNicknameIndexEntry`). 1 write, 전체 재기록 없음.
+ *  - 쓰기: `recordRanking` 이 랭킹 문서와 해당 샤드의 키 하나를 같은 트랜잭션으로 저장.
+ *    샤드는 1 write, 전체 재기록 없음.
  *  - 최초 1회(샤드 부재 시)만 `ent2_users` 를 스캔해 백필한다(`rebuildIndex`).
  *
  * 샤드를 나누는 이유: Firestore 단일 문서 1 MiB 제한 회피. 8 샤드 × ~수천 키로
@@ -21,7 +21,7 @@
  */
 
 import { getDb } from "@/lib/firebase"
-import type { Firestore } from "@google-cloud/firestore"
+import type { Firestore, Transaction } from "@google-cloud/firestore"
 
 export interface NicknameEntry {
   id: string
@@ -152,26 +152,27 @@ export async function getNicknameIndex(): Promise<NicknameEntry[]> {
 
 /**
  * 단일 유저의 경량 인덱스 엔트리를 해당 샤드에 merge 업서트한다.
- * `recordRanking` 에서 호출 — 검색된 유저가 자동완성에 즉시 반영되게 한다.
+ * 랭킹 문서와 같은 트랜잭션에 등록하여 부분 성공을 방지한다.
  * 키 하나만 merge 하므로 1 write, 샤드 전체 재기록 없음.
  */
-export async function upsertNicknameIndexEntry(
+export function setNicknameIndexEntry(
+  transaction: Transaction,
+  db: Firestore,
   entry: NicknameEntry,
-): Promise<void> {
-  const db = getDb()
+): void {
   const { id, nickname, totalProjects, activityDays } = entry
-  await db
-    .collection(INDEX_COLLECTION)
-    .doc(shardDocId(shardFor(id)))
-    .set(
-      { users: { [id]: { nickname, totalProjects, activityDays } } },
-      { merge: true },
-    )
+  transaction.set(
+    db.collection(INDEX_COLLECTION).doc(shardDocId(shardFor(id))),
+    { users: { [id]: { nickname, totalProjects, activityDays } } },
+    { merge: true },
+  )
+}
 
-  // 로컬 in-memory 캐시도 즉시 갱신 (있을 때만; 다음 미스에서 어차피 재로딩)
+/** Firestore 커밋에 성공한 뒤에만 로컬 검색 캐시를 갱신한다. */
+export function updateNicknameIndexCache(entry: NicknameEntry): void {
   if (cached) {
-    const next = cached.data.filter((e) => e.id !== id)
-    next.push({ id, nickname, totalProjects, activityDays })
+    const next = cached.data.filter((e) => e.id !== entry.id)
+    next.push(entry)
     cached = { at: cached.at, data: next }
   }
 }

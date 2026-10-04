@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next"
-
-const SITE_URL = "https://xn--ok0bx68bhtav5k.xn--oy2b95t44j.org"
+import { SITE_ORIGIN } from "@/lib/share-url"
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -11,6 +10,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: "/api/",
       },
     ],
-    sitemap: `${SITE_URL}/sitemap.xml`,
+    sitemap: `${SITE_ORIGIN}/sitemap.xml`,
   }
 }

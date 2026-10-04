@@ -9,6 +9,7 @@ import {
 } from "@/lib/ranking-navigation"
 import {
   RANKING_LABELS,
+  isProfileRanking,
   type RankingEntry,
   type RankingType,
 } from "@/lib/ranking-types"
@@ -41,6 +42,10 @@ function valueFor(type: RankingType, e: RankingEntry): string {
       return `${fmt(e.popularCount)}개`
     case "staff":
       return `${fmt(e.staffCount)}개`
+    case "followers":
+      return e.followers === null ? "미수집" : `${fmt(e.followers)}명`
+    case "following":
+      return e.following === null ? "미수집" : `${fmt(e.following)}명`
   }
 }
 
@@ -62,6 +67,10 @@ function numericValueFor(type: RankingType, entry: RankingEntry): number {
       return entry.popularCount
     case "staff":
       return entry.staffCount
+    case "followers":
+      return entry.followers ?? -1
+    case "following":
+      return entry.following ?? -1
   }
 }
 
@@ -176,7 +185,7 @@ export default function RankingTable({
                         선택한 유저
                       </span>
                     )}
-                    {e.truncated && type === "activity" && (
+                    {e.truncated && isProfileRanking(type) && (
                       <span className="ml-2 inline-block rounded bg-emerald-50 px-1.5 py-0.5 text-xs text-emerald-700 ring-1 ring-emerald-200">
                         작품 {fmt(e.totalProjects)}개
                       </span>

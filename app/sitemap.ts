@@ -1,18 +1,19 @@
 import type { MetadataRoute } from "next"
-
-const SITE_URL = "https://xn--ok0bx68bhtav5k.xn--oy2b95t44j.org"
+import { SITE_ORIGIN } from "@/lib/share-url"
+import { RANKING_TYPES } from "@/lib/ranking-types"
+import { rankingPageHref } from "@/lib/ranking-navigation"
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
-      url: SITE_URL,
+      url: SITE_ORIGIN,
       changeFrequency: "monthly",
       priority: 1.0,
     },
-    {
-      url: `${SITE_URL}/ranking`,
-      changeFrequency: "hourly",
+    ...RANKING_TYPES.map((type) => ({
+      url: `${SITE_ORIGIN}${rankingPageHref(type)}`,
+      changeFrequency: "hourly" as const,
       priority: 0.9,
-    },
+    })),
   ]
 }

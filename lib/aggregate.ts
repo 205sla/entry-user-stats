@@ -1,5 +1,6 @@
 import type { EntryProject, EntryUserStatus } from "./entry-api"
 import { entryPictureUrl } from "./entry-media"
+import { collectedCount } from "./collected-count"
 
 /**
  * 정확한 통계를 표시할 수 있는 최대 작품 수.
@@ -92,8 +93,8 @@ export interface AggregatedStats {
     created: string
     profileImage: string | null
     coverImage: string | null
-    followers: number
-    following: number
+    followers: number | null
+    following: number | null
   }
   /** 가장 최근 수정된 작품 (truncated 유저는 별도 타겟 호출 결과, 아니면 현재 fetched 세트에서 선택) */
   latestActivity: LatestActivity | null
@@ -275,8 +276,8 @@ export function aggregate(
       created: user.created,
       profileImage: entryPictureUrl(user.profileImage),
       coverImage: entryPictureUrl(user.coverImage),
-      followers: user.status?.follower ?? 0,
-      following: user.status?.following ?? 0,
+      followers: collectedCount(user.status?.follower),
+      following: collectedCount(user.status?.following),
     },
     latestActivity,
     totals: {

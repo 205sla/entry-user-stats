@@ -48,12 +48,12 @@ export interface EntryUserStatus {
   created: string
   profileImage: EntryPicture | null
   coverImage: EntryPicture | null
-  status: {
+  status?: {
     project: number
     projectAll: number
-    follower: number
-    following: number
-  }
+    follower?: number | null
+    following?: number | null
+  } | null
 }
 
 interface CsrfSession {

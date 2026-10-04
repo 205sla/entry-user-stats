@@ -2,46 +2,31 @@ import type { Metadata } from "next"
 import "./globals.css"
 import ToolsFamilyLink from "@/components/ToolsFamilyLink"
 import { SITE_ORIGIN } from "@/lib/share-url"
-
-const SITE_NAME = "유저 찾기.엔트리.org"
-const DESCRIPTION = "엔트리 프로필 링크를 붙여넣으면 작품 통계를 보여줍니다."
+import { SITE_NAME, SITE_TITLE, SITE_DESCRIPTION } from "@/lib/site-metadata"
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_ORIGIN),
   title: {
-    default: `${SITE_NAME} — 엔트리 유저 통계`,
+    default: SITE_TITLE,
     template: `%s — ${SITE_NAME}`,
   },
-  description: DESCRIPTION,
+  description: SITE_DESCRIPTION,
   openGraph: {
     type: "website",
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — 엔트리 유저 통계`,
-    description: DESCRIPTION,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     locale: "ko_KR",
     url: SITE_ORIGIN,
   },
   twitter: {
     card: "summary",
-    title: `${SITE_NAME} — 엔트리 유저 통계`,
-    description: DESCRIPTION,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
   },
   robots: {
     index: true,
     follow: true,
-  },
-}
-
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  name: SITE_NAME,
-  url: SITE_ORIGIN,
-  description: DESCRIPTION,
-  potentialAction: {
-    "@type": "SearchAction",
-    target: `${SITE_ORIGIN}/l/{search_term_string}`,
-    "query-input": "required name=search_term_string",
   },
 }
 
@@ -52,12 +37,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
-      <head>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
-      </head>
       <body className="min-h-screen font-sans">
         {children}
         <footer className="border-t border-slate-200 bg-white px-6 py-8 text-center text-xs leading-relaxed text-slate-500">
