@@ -247,6 +247,7 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY----
 - 205님(`56136825dadc91e1235b460d`)의 추가 링크에 전달받은 나무위키 `이영호(2003)` 문서를 등록했습니다.
 - 데이터 형식과 관리 방법은 [유저별 추가 정보 관리](#유저별-추가-정보-관리)에 정리했습니다.
 - 배포 전 ESLint·TypeScript·기존 테스트 40개·프로덕션 빌드가 통과했습니다. 브라우저에서 205님의 링크 3개 주소와 새 탭 속성, 명단에 없는 300개 초과 유저의 링크 2개, 모바일에서 가로 넘침 없는 배치를 확인했습니다.
+- 구현 커밋 [`c8c847e`](https://github.com/205sla/entry-user-stats/commit/c8c847e2db603fa08ab8015ef7edceb1de14c9d7)의 [GitHub CI](https://github.com/205sla/entry-user-stats/actions/runs/38391190627)와 [Vercel 배포](https://vercel.com/205slas-projects/entry-user-stats/h3WpgyhUx9pFfYayjftuMrNaAGGY)가 성공했습니다. 운영 도메인의 205님 페이지에서 마이페이지·엔트리유저위키·나무위키 링크 주소와 새 탭 속성을 다시 확인했습니다.
 
 ### 2026-10-13 — 제목 주소 복사 수정·작품 수 랭킹 추가
 
