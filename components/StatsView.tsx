@@ -17,6 +17,7 @@ import YearBarChart from "./YearBarChart"
 import ShareButton from "./ShareButton"
 import { profileShareUrl } from "@/lib/share-url"
 import { rankingPageHref } from "@/lib/ranking-navigation"
+import { getUserExternalLinks } from "@/lib/user-external-links"
 
 interface Props {
   stats: AggregatedStats
@@ -73,6 +74,7 @@ function UserHeader({
   latestActivity: LatestActivity | null
 }) {
   const initial = Array.from(user.nickname.trim())[0] ?? "?"
+  const externalLinks = getUserExternalLinks(user)
 
   return (
     <header className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
@@ -148,6 +150,22 @@ function UserHeader({
         </div>
 
         {latestActivity && <LatestActivityLine latest={latestActivity} />}
+
+        <nav aria-label="유저 관련 사이트" className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+          {externalLinks.map(({ label, href }) => (
+            <a
+              key={label}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-brand-500 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+            >
+              {label}
+              <span aria-hidden="true">↗</span>
+              <span className="sr-only"> (새 탭)</span>
+            </a>
+          ))}
+        </nav>
       </div>
     </header>
   )
