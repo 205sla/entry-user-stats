@@ -28,6 +28,21 @@ export const USER_EXTRA_INFO: Readonly<Record<string, UserExtraInfo>> = {
       },
     ],
   },
+  "534cd3c32d3ee756348975f8": {
+    nickname: "thdtkdtn",
+    links: [
+      {
+        label: "관련 블로그 글 보기",
+        href: "https://blog.naver.com/gi_sik_in/221372350283",
+      },
+    ],
+    details: [
+      {
+        label: "이전 직책",
+        value: "네이버 커넥트재단 SW교육플랫폼팀(엔트리) 팀장",
+      },
+    ],
+  },
 }
 
 export function getUserExtraInfo(userId: string): UserExtraInfo | undefined {
