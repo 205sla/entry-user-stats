@@ -205,7 +205,7 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY----
 - 전체 작품 수는 엔트리 API의 목록 `total` 값이므로 상세 집계 한도인 300개를 초과한 유저도 참여합니다.
 - 작품 수가 없거나 `null`이면 제외하고, 실제 0개는 포함합니다. 같은 작품 수는 같은 순위입니다.
 - 홈·랭킹 탭, 유저 순위 배지, 부문별 공유 링크, 메타데이터·사이트맵까지 11개 부문으로 연결했습니다.
-- 추가 API 호출, 전체 재수집, 데이터 백필, 새 Firestore 복합 인덱스 배포는 필요하지 않습니다.
+- 추가 엔트리 API 호출, 전체 재수집, 데이터 백필, 새 Firestore 복합 인덱스 배포는 필요하지 않습니다.
 
 배포 전 검증:
 
@@ -213,6 +213,14 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY----
 - 실제 브라우저에서 제목의 표시 간격과 복사 문자열을 확인했습니다.
 - 저장된 실제 데이터로 작품 수 내림차순 표시와 300개 초과 유저 포함을 확인했습니다.
 - PC와 좁은 모바일 화면에서 제목·랭킹 탭·표가 가로로 넘치지 않는 것을 확인했습니다.
+
+운영 배포 확인 (2026-10-13):
+
+- 기능 배포 커밋: [`e3791f8`](https://github.com/205sla/entry-user-stats/commit/e3791f8f758d281961dd6d825bf97204fd9fb31e). `main` 푸시로 배포했습니다.
+- [GitHub Actions CI #38388857427](https://github.com/205sla/entry-user-stats/actions/runs/38388857427)의 설치·린트·타입 검사·테스트·빌드가 모두 성공했습니다.
+- [Vercel Production 배포](https://vercel.com/205slas-projects/entry-user-stats/7pUSbacDrakppi9mDWjDehs7z8Tk)가 `success` 상태로 완료됐습니다.
+- [운영 홈](https://유저찾기.엔트리.org)에서 제목을 직접 선택·복사해 주소 내부 공백이 없는 것을 확인했습니다.
+- [운영 작품 수 랭킹](https://유저찾기.엔트리.org/ranking?type=projects)에서 첫 20행의 내림차순 정렬, 작품 300개 초과 유저 포함, `개` 단위 표시를 확인했습니다.
 
 ## 안내
 
