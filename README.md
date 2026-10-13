@@ -246,6 +246,9 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY----
 - **관련 블로그 글 보기** 버튼을 [전달받은 네이버 블로그 글](https://blog.naver.com/gi_sik_in/221372350283)에 연결했습니다.
 - 사용자 요청에 따라 직책 정보는 저장·표시하지 않고 블로그 링크만 등록합니다. 별도의 추가 정보 영역도 표시되지 않습니다.
 - 기존 `USER_EXTRA_INFO`의 `links`만 추가했으며 DB 구조는 변경하지 않았습니다.
+- 최종 기능 커밋 [`c0eadb0`](https://github.com/205sla/entry-user-stats/commit/c0eadb05826701155523463d33c424f302183aa9)의 [GitHub CI](https://github.com/205sla/entry-user-stats/actions/runs/38392364575)에서 ESLint·TypeScript·기존 테스트 40개·프로덕션 빌드가 모두 통과했습니다.
+- 2026-10-13 [Vercel 운영 배포](https://vercel.com/205slas-projects/entry-user-stats/EDwzmLW53FbYgcZjMGv1YYUfkkFk) 완료를 확인했습니다.
+- [운영 프로필](https://유저찾기.엔트리.org/u/534cd3c32d3ee756348975f8)에서 공통 링크 2개와 **관련 블로그 글 보기** 버튼이 표시되고, 블로그 주소가 전달받은 URL과 일치하는 것을 확인했습니다. `이전 직책` 문구와 `추가 유저 정보` 영역은 모두 표시되지 않습니다.
 
 ### 2026-10-13 — 유저 정보 외부 링크·범용 추가 정보
 
