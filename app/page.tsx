@@ -32,7 +32,7 @@ export default function HomePage() {
       <div className="w-full max-w-2xl">
         <header className="mb-10 text-center">
           <h1 className="whitespace-nowrap text-[clamp(1.5rem,7.5vw,2.25rem)] font-bold tracking-tight text-slate-900">
-            유저 찾기<span className="text-slate-400">.</span>엔트리<span className="text-slate-400">.</span>org
+            유저<span className="ml-[0.25em]">찾기</span><span className="text-slate-400">.</span>엔트리<span className="text-slate-400">.</span>org
           </h1>
           <p className="mt-3 text-slate-600">
             엔트리 닉네임이나 프로필 링크로 유저를 찾고, 작품 통계와 랭킹을 확인하세요.
@@ -53,8 +53,8 @@ export default function HomePage() {
         <section className="mt-10 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
           <h2 className="text-base font-semibold text-slate-900">엔트리 유저 랭킹</h2>
           <p className="mt-2 text-sm leading-relaxed text-slate-600">
-            검색된 유저의 공개 정보를 바탕으로 10개 부문의 순위를 보여줍니다.
-            팔로워·팔로잉 랭킹은 작품 수와 관계없이 참여할 수 있습니다.
+            검색된 유저의 공개 정보를 바탕으로 {RANKING_TYPES.length}개 부문의 순위를 보여줍니다.
+            작품 수·활동 기간·팔로워·팔로잉 랭킹은 작품 수와 관계없이 참여할 수 있습니다.
           </p>
           <nav aria-label="부문별 랭킹" className="mt-4 flex flex-wrap gap-2">
             {RANKING_TYPES.map((type) => (

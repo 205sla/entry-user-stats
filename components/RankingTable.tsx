@@ -9,7 +9,7 @@ import {
 } from "@/lib/ranking-navigation"
 import {
   RANKING_LABELS,
-  isProfileRanking,
+  includesTruncatedUsers,
   type RankingEntry,
   type RankingType,
 } from "@/lib/ranking-types"
@@ -36,6 +36,8 @@ function valueFor(type: RankingType, e: RankingEntry): string {
       return fmt(e.totalClones)
     case "blocks":
       return fmt(e.totalBlocks)
+    case "projects":
+      return `${fmt(e.totalProjects)}개`
     case "activity":
       return formatDays(e.activityDays)
     case "popular":
@@ -61,6 +63,8 @@ function numericValueFor(type: RankingType, entry: RankingEntry): number {
       return entry.totalClones
     case "blocks":
       return entry.totalBlocks
+    case "projects":
+      return entry.totalProjects
     case "activity":
       return entry.activityDays
     case "popular":
@@ -185,7 +189,7 @@ export default function RankingTable({
                         선택한 유저
                       </span>
                     )}
-                    {e.truncated && isProfileRanking(type) && (
+                    {e.truncated && includesTruncatedUsers(type) && type !== "projects" && (
                       <span className="ml-2 inline-block rounded bg-emerald-50 px-1.5 py-0.5 text-xs text-emerald-700 ring-1 ring-emerald-200">
                         작품 {fmt(e.totalProjects)}개
                       </span>

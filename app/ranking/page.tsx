@@ -4,7 +4,7 @@ import RankingTable from "@/components/RankingTable"
 import ShareButton from "@/components/ShareButton"
 import { rankingShareUrl } from "@/lib/share-url"
 import { publicPageMetadata, SITE_NAME } from "@/lib/site-metadata"
-import { isProfileRanking, parseRankingType, RANKING_DESCRIPTIONS } from "@/lib/ranking-types"
+import { includesTruncatedUsers, parseRankingType, RANKING_DESCRIPTIONS } from "@/lib/ranking-types"
 import {
   normalizeFocusedUserId,
   rankingPageHref,
@@ -111,10 +111,16 @@ export default async function RankingPage({ searchParams }: PageProps) {
               참여합니다. 작품 수에 관계없이, 검색 당시 확인한 인원수를 기준으로 합니다.
             </p>
           )}
-          {!isProfileRanking(type) && (
+          {type === "projects" && (
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              검색 당시 확인한 전체 공개 작품 수를 기준으로 합니다.
+              작품이 300개를 초과하는 유저도 참여합니다.
+            </p>
+          )}
+          {!includesTruncatedUsers(type) && (
             <p className="mt-2 text-xs text-slate-500">
               ※ 작품 300개 초과 유저는 작품 집계 부문에서 제외됩니다.
-              활동 기간·팔로워·팔로잉 랭킹에는 참여할 수 있습니다.
+              작품 수·활동 기간·팔로워·팔로잉 랭킹에는 참여할 수 있습니다.
             </p>
           )}
         </section>

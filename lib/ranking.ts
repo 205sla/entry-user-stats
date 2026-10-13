@@ -5,7 +5,7 @@
  *   1시간 이내 재기록은 skip 하여 쓰기 비용을 줄인다. truncated 유저도 메타데이터는
  *   보존하되 `truncated: true` 로 마킹되며, 작품 집계 랭킹에서만 제외된다.
  *
- * - `getRanking(type, limit)` : 부문별 top N 조회. 활동 기간·팔로워·팔로잉은
+ * - `getRanking(type, limit)` : 부문별 top N 조회. 작품 수·활동 기간·팔로워·팔로잉은
  *   truncated 유저도 포함, 작품 집계가 필요한 7개 부문은 제외한다.
  */
 
@@ -21,7 +21,7 @@ import type { AggregatedStats } from "@/lib/aggregate"
 import { collectedCount } from "@/lib/collected-count"
 import {
   RANKING_TYPES,
-  isProfileRanking,
+  includesTruncatedUsers,
   type RankingType,
   type RankingEntry,
   type UserRankPositions,
@@ -49,6 +49,7 @@ const FIELD_MAP: Record<RankingType, string> = {
   comments: "totalComments",
   clones: "totalClones",
   blocks: "totalBlocks",
+  projects: "totalProjects",
   activity: "activityDays",
   popular: "popularCount",
   staff: "staffCount",
@@ -147,7 +148,7 @@ async function writeRanking(stats: AggregatedStats): Promise<void> {
 
 /**
  * 부문별 top N 조회.
- * - 활동 기간·팔로워·팔로잉은 truncated 유저 포함 (프로필 기반이라 정확)
+ * - 작품 수·활동 기간·팔로워·팔로잉은 truncated 유저 포함 (API의 전체 수치 사용)
  * - 작품 집계 7개 부문은 부분 집계라 제외 (`where truncated == false`)
  * - orderBy는 해당 필드가 없는 기존 문서를 제외한다. 검색되기 전에는 참여하지 않는다.
  */
@@ -160,12 +161,12 @@ async function queryRanking(
   const collection = db.collection(COLLECTION)
 
   let base =
-    isProfileRanking(type)
+    includesTruncatedUsers(type)
       ? collection
       : collection.where("truncated", "==", false)
 
-  if (type === "followers" || type === "following") {
-    // 필드 부재뿐 아니라 기존 null 값도 랭킹에서 제외한다. 실제 0명은 포함한다.
+  if (type === "projects" || type === "followers" || type === "following") {
+    // 필드 부재뿐 아니라 기존 null 값도 랭킹에서 제외한다. 실제 0은 포함한다.
     base = base.where(field, ">=", 0)
   }
 
@@ -220,7 +221,7 @@ const MAX_DISPLAYED_RANK = 100
  *
  * 각 부문에 대해 Firestore count() aggregation 으로 "유저보다 값이 큰 다른 유저 수"
  * 를 세어 순위 계산. 각 쿼리는 매칭된 문서 1000개당 1 read 로 과금되므로 유저 풀이
- * 작을 땐 부문당 ~1 read (총 10 reads) 로 매우 저렴.
+ * 작을 땐 부문당 ~1 read (총 11 reads) 로 매우 저렴.
  *
  * - truncated 유저는 작품 집계 부문에서만 제외
  * - rank > 100 이면 뱃지 미노출
@@ -240,12 +241,12 @@ export async function getUserRankPositions(
 
       const tasks = RANKING_TYPES.map(async (type) => {
         try {
-          if (!isProfileRanking(type) && user.get("truncated") !== false) return null
+          if (!includesTruncatedUsers(type) && user.get("truncated") !== false) return null
           const field = FIELD_MAP[type]
           const value = collectedCount(user.get(field))
           if (value === null) return null
 
-          const base = isProfileRanking(type)
+          const base = includesTruncatedUsers(type)
             ? collection
             : collection.where("truncated", "==", false)
           const snap = await transaction.get(base.where(field, ">", value).count())

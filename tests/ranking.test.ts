@@ -104,7 +104,7 @@ describe("검색 시 랭킹과 닉네임 등록", () => {
   it("작품 300개 초과 유저도 프로필 수치를 저장한다", async () => {
     const store = useStore()
     await recordRanking(statsFor(350))
-    expect(store.documents.get(userPath)).toMatchObject({ followers: 120, following: 45, truncated: true })
+    expect(store.documents.get(userPath)).toMatchObject({ totalProjects: 350, followers: 120, following: 45, truncated: true })
   })
 
   it("같은 인스턴스의 동시 기록은 한 작업으로 합친다", async () => {
@@ -151,6 +151,25 @@ describe("검색 시 랭킹과 닉네임 등록", () => {
 })
 
 describe("목록과 배지", () => {
+  it("작품 수는 재수집 없이 전체 수치로 정렬하고 0개·한도 초과·동률을 반영한다", async () => {
+    const store = useStore()
+    for (const [id, totalProjects] of [["missing", undefined], ["null", null], ["zero", 0], ["small", 12], ["large", 350], ["tie", 350], ["most", 1200]] as const) {
+      store.documents.set(`ent2_users/${id}`, {
+        ...(totalProjects === undefined ? {} : { totalProjects }),
+        truncated: typeof totalProjects === "number" && totalProjects > 300,
+      })
+    }
+    const entries = await getRanking("projects", 100)
+    expect(entries.map(entry => entry.totalProjects)).toEqual([1200, 350, 350, 12, 0])
+    expect((await getUserRankPositions("most")).projects).toBe(1)
+    expect((await getUserRankPositions("large")).projects).toBe(2)
+    expect((await getUserRankPositions("tie")).projects).toBe(2)
+    expect((await getUserRankPositions("zero")).projects).toBe(5)
+    expect((await getUserRankPositions("missing")).projects).toBeUndefined()
+    expect((await getUserRankPositions("null")).projects).toBeUndefined()
+    expect(store.commits).toHaveLength(0)
+  })
+
   it.each(["followers", "following"] as const)("%s는 미수집을 제외하고 0명·작품 한도 초과 유저를 정렬한다", async (type) => {
     const store = useStore()
     for (const [id, count] of [["a", undefined], ["b", null], ["c", 0], ["d", 5], ["e", 5], ["f", 10]] as const) {
@@ -185,11 +204,12 @@ describe("목록과 배지", () => {
     expect(await getUserRankPositions(id)).toEqual({})
   })
 
-  it("작품 한도 초과 유저는 프로필 부문에만 참여한다", async () => {
+  it("작품 한도 초과 유저는 작품 수와 프로필 부문에 참여한다", async () => {
     const store = useStore()
     await recordRanking(statsFor(350))
     expect(await getRanking("views", 100)).toEqual([])
-    expect(await getUserRankPositions(id)).toEqual({ activity: 1, followers: 1, following: 1 })
+    expect(await getUserRankPositions(id)).toEqual({ projects: 1, activity: 1, followers: 1, following: 1 })
+    expect((await getRanking("projects", 100))[0].totalProjects).toBe(350)
     expect((await getRanking("activity", 100))[0].id).toBe(id)
     expect(store.commits).toHaveLength(1)
   })

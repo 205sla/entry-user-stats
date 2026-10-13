@@ -1,5 +1,5 @@
 {
-  "_comment": "Firestore composite indexes for ent2_users. Each of the 7 project ranking fields needs TWO composite indexes: one DESC (for /ranking page orderBy) and one ASC (for getUserRankPositions count with `where field > X`). activityDays, followers and following use single-field auto-indexes only, include truncated users, and need no new composite indexes. Documents without a social count are naturally excluded by orderBy until their next search. Deploy via `firebase deploy --only firestore:indexes`.",
+  "_comment": "Firestore composite indexes for ent2_users. Each of the 7 project aggregate ranking fields needs TWO composite indexes: one DESC (for /ranking page orderBy) and one ASC (for getUserRankPositions count with `where field > X`). totalProjects, activityDays, followers and following use single-field auto-indexes only, include truncated users, and need no new composite indexes. Documents without a social count are naturally excluded by orderBy until their next search. Deploy via `firebase deploy --only firestore:indexes`.",
   "indexes": [
     {
       "collectionGroup": "ent2_users",

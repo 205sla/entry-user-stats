@@ -9,6 +9,7 @@ export type RankingType =
   | "comments"
   | "clones"
   | "blocks"
+  | "projects"
   | "activity"
   | "popular"
   | "staff"
@@ -21,6 +22,7 @@ export const RANKING_TYPES: RankingType[] = [
   "comments",
   "clones",
   "blocks",
+  "projects",
   "activity",
   "popular",
   "staff",
@@ -35,6 +37,7 @@ export const RANKING_LABELS: Record<RankingType, string> = {
   comments: "댓글",
   clones: "사본",
   blocks: "사용 블록",
+  projects: "작품 수",
   activity: "활동 기간",
   popular: "인기 작품",
   staff: "스태프 선정",
@@ -48,6 +51,7 @@ export const RANKING_DESCRIPTIONS: Record<RankingType, string> = {
   comments: "작품 댓글의 합이 가장 많은 유저",
   clones: "작품 사본의 합이 가장 많은 유저",
   blocks: "작품에서 사용한 블록 수의 합이 가장 많은 유저",
+  projects: "공개 작품 수가 가장 많은 유저",
   activity: "엔트리 가입 후 가장 오래 활동한 유저",
   popular: "인기 작품으로 선정된 작품이 가장 많은 유저",
   staff: "스태프 선정 작품이 가장 많은 유저",
@@ -55,9 +59,9 @@ export const RANKING_DESCRIPTIONS: Record<RankingType, string> = {
   following: "팔로잉 수가 가장 많은 유저",
 }
 
-/** 프로필에서 직접 얻는 값은 작품 집계 한도와 관계없이 정확하다. */
-export function isProfileRanking(type: RankingType): boolean {
-  return type === "activity" || type === "followers" || type === "following"
+/** API의 전체 작품 수와 프로필 수치는 개별 작품 집계 한도와 관계없이 정확하다. */
+export function includesTruncatedUsers(type: RankingType): boolean {
+  return type === "projects" || type === "activity" || type === "followers" || type === "following"
 }
 
 export function parseRankingType(value: string | string[] | undefined): RankingType {
