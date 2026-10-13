@@ -18,6 +18,7 @@ import ShareButton from "./ShareButton"
 import { profileShareUrl } from "@/lib/share-url"
 import { rankingPageHref } from "@/lib/ranking-navigation"
 import { getUserExternalLinks } from "@/lib/user-external-links"
+import { getUserExtraInfo } from "@/lib/user-extra-info"
 
 interface Props {
   stats: AggregatedStats
@@ -75,6 +76,7 @@ function UserHeader({
 }) {
   const initial = Array.from(user.nickname.trim())[0] ?? "?"
   const externalLinks = getUserExternalLinks(user)
+  const extraDetails = getUserExtraInfo(user.id)?.details ?? []
 
   return (
     <header className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
@@ -154,7 +156,7 @@ function UserHeader({
         <nav aria-label="유저 관련 사이트" className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
           {externalLinks.map(({ label, href }) => (
             <a
-              key={label}
+              key={`${label}:${href}`}
               href={href}
               target="_blank"
               rel="noopener noreferrer"
@@ -166,6 +168,17 @@ function UserHeader({
             </a>
           ))}
         </nav>
+
+        {extraDetails.length > 0 && (
+          <dl aria-label="추가 유저 정보" className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-sm">
+            {extraDetails.map(({ label, value }) => (
+              <div key={label} className="flex flex-wrap gap-x-3 gap-y-1">
+                <dt className="font-medium text-slate-500">{label}</dt>
+                <dd className="min-w-0 whitespace-pre-wrap break-words text-slate-800 [overflow-wrap:anywhere]">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
       </div>
     </header>
   )
